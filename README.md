@@ -2,11 +2,11 @@
 
 An AI-powered operations assistant for villa and hotel property managers in Bali. Chat with an AI that can query bookings, manage properties, contact guests, and provide analytics — all through natural language.
 
-![Python](https://img.shields.io/badge/Python-3.12+-blue)
+![Python](https://img.shields.io/badge/Python-3.13+-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-green)
 ![LangGraph](https://img.shields.io/badge/LangGraph-Agent-purple)
 ![MCP](https://img.shields.io/badge/MCP-Tools-orange)
-![Next.js](https://img.shields.io/badge/Next.js-15-black)
+![Next.js](https://img.shields.io/badge/Next.js-16-black)
 ![Stripe](https://img.shields.io/badge/Stripe-Payments-blueviolet)
 ![AWS](https://img.shields.io/badge/AWS-ECS%20Fargate-orange)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
@@ -95,7 +95,7 @@ The AI agent understands the intent, picks the right tool, executes it, and resp
 
 | Layer | Technology |
 |---|---|
-| **Backend** | Python 3.12+, FastAPI (async) |
+| **Backend** | Python 3.13+, FastAPI (async) |
 | **Agent** | LangGraph |
 | **Tool Protocol** | MCP (SSE/Streamable HTTP transport) |
 | **LLM Gateway** | LiteLLM (Gemini default, Anthropic + OpenAI fallback) |
@@ -103,7 +103,7 @@ The AI agent understands the intent, picks the right tool, executes it, and resp
 | **Database** | PostgreSQL + Alembic migrations |
 | **Cache** | Redis |
 | **Auth** | JWT + Google OAuth + GitHub OAuth |
-| **Frontend** | Next.js 15, TypeScript, Tailwind CSS |
+| **Frontend** | Next.js 16, TypeScript, Tailwind CSS |
 | **Testing** | pytest, pytest-asyncio, httpx (>80% coverage) |
 | **CI/CD** | GitHub Actions |
 | **Deployment** | AWS (ECS Fargate + ECR + RDS + ElastiCache) |
@@ -113,8 +113,8 @@ The AI agent understands the intent, picks the right tool, executes it, and resp
 ### Prerequisites
 
 - Docker & Docker Compose
-- Python 3.12+
-- Node.js 18+
+- Python 3.13+
+- Node.js 20+
 - API keys for at least one LLM provider (Gemini, Anthropic, or OpenAI)
 - Stripe account (test mode)
 
