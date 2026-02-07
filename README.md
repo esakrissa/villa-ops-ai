@@ -39,16 +39,16 @@ The AI agent understands the intent, picks the right tool, executes it, and resp
 ┌─────────────────────────────────────────────────────────────┐
 │                    Next.js Frontend                         │
 │                                                             │
-│  ┌────────┐ ┌────────┐ ┌───────────┐ ┌──────────────────┐  │
-│  │  Auth  │ │Pricing │ │  Chat UI  │ │    Dashboard     │  │
-│  │  Pages │ │  Page  │ │  (SSE)    │ │  (Bookings/      │  │
-│  │        │ │        │ │           │ │   Analytics)     │  │
-│  └────────┘ └────────┘ └───────────┘ └──────────────────┘  │
-└────────┬───────────────────────────────────────────────────┘
+│  ┌────────┐ ┌────────┐ ┌───────────┐ ┌──────────────────┐   │
+│  │  Auth  │ │Pricing │ │  Chat UI  │ │    Dashboard     │   │
+│  │  Pages │ │  Page  │ │  (SSE)    │ │   (Bookings/     │   │
+│  │        │ │        │ │           │ │   Analytics)     │   │
+│  └────────┘ └────────┘ └───────────┘ └──────────────────┘   │
+└────────┬────────────────────────────────────────────────────┘
          │ REST + SSE
          ▼
 ┌────────────────────────────────────────────────────┐
-│              FastAPI Backend                        │
+│              FastAPI Backend                       │
 │                                                    │
 │  ┌──────────────────────────────────────────────┐  │
 │  │  Auth: JWT + Google OAuth + GitHub OAuth     │  │
@@ -123,7 +123,7 @@ The AI agent understands the intent, picks the right tool, executes it, and resp
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/your-username/villa-ops-ai.git
+   git clone https://github.com/esakrissa/villa-ops-ai.git
    cd villa-ops-ai
    ```
 
