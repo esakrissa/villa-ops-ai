@@ -1,0 +1,50 @@
+# Project plan (private)
+PLAN.md
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.venv/
+venv/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+.next/
+out/
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Docker
+*.log
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
