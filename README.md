@@ -3,7 +3,7 @@
 An AI-powered operations assistant for villa and hotel property managers in Bali. Chat with an AI that can query bookings, manage properties, contact guests, and provide analytics — all through natural language.
 
 ![Python](https://img.shields.io/badge/Python-3.13+-blue)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-green)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.128+-green)
 ![LangGraph](https://img.shields.io/badge/LangGraph-Agent-purple)
 ![MCP](https://img.shields.io/badge/MCP-Tools-orange)
 ![Next.js](https://img.shields.io/badge/Next.js-16-black)
