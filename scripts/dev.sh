@@ -62,6 +62,8 @@ EXCLUDES=(
     "postgres_data/"
     "redis_data/"
     ".conductor/"
+    ".claude/"
+    "screenshots/"
 )
 
 # ─── Colors ──────────────────────────────────────────────────────────────────

@@ -39,6 +39,8 @@ EXCLUDES=(
     "*.tfstate.backup"
     "postgres_data/"
     "redis_data/"
+    ".claude/"
+    "screenshots/"
 )
 
 # Build rsync exclude args

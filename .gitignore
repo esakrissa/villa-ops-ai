@@ -3,6 +3,8 @@ PLAN.md
 CLAUDE.md
 checkpoints/
 prompts/
+.claude/
+screenshots/
 
 # Python
 __pycache__/
