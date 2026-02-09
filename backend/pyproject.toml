@@ -24,7 +24,10 @@ dependencies = [
     # Auth
     "authlib>=1.4.0",
     "python-jose[cryptography]>=3.3.0",
-    "passlib[bcrypt]>=1.7.4",
+    "bcrypt>=4.0.0",
+    # Validation
+    "email-validator>=2.1.0",
+    "itsdangerous>=2.1.0",
     # HTTP client
     "httpx>=0.28.0",
     # AI / Agent
@@ -86,7 +89,6 @@ plugins = ["pydantic.mypy"]
 [[tool.mypy.overrides]]
 module = [
     "authlib.*",
-    "passlib.*",
     "jose.*",
     "litellm.*",
     "langgraph.*",
