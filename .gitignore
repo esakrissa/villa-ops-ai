@@ -1,6 +1,7 @@
 # Project plan & Claude context (private)
 PLAN.md
 CLAUDE.md
+checkpoints/
 
 # Python
 __pycache__/

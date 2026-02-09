@@ -1,6 +1,11 @@
 """Application configuration using pydantic-settings."""
 
+import warnings
+
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_INSECURE_JWT_DEFAULT = "change-me-in-production"
 
 
 class Settings(BaseSettings):
@@ -30,7 +35,7 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
 
     # JWT Auth
-    jwt_secret_key: str = "change-me-in-production"
+    jwt_secret_key: str = _INSECURE_JWT_DEFAULT
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 30
     jwt_refresh_token_expire_days: int = 7
@@ -53,7 +58,7 @@ class Settings(BaseSettings):
     stripe_business_price_id: str = ""
 
     # LLM (LiteLLM)
-    default_llm_model: str = "gemini/gemini-2.0-flash"
+    default_llm_model: str = "gemini/gemini-3.0-flash"
     gemini_api_key: str = ""
     anthropic_api_key: str = ""
     openai_api_key: str = ""
@@ -68,6 +73,23 @@ class Settings(BaseSettings):
         "http://localhost:3000",
         "http://localhost:8000",
     ]
+
+    @model_validator(mode="after")
+    def _validate_secrets(self) -> "Settings":
+        """Reject insecure JWT secret in production and warn in development."""
+        if self.jwt_secret_key == _INSECURE_JWT_DEFAULT:
+            if self.environment == "production":
+                raise ValueError(
+                    "JWT_SECRET_KEY must be set to a strong random value in production. "
+                    'Generate one with: python -c "import secrets; print(secrets.token_urlsafe(64))"'
+                )
+            warnings.warn(
+                "Using default JWT secret — this is insecure and only acceptable for local development. "
+                "Set JWT_SECRET_KEY in your .env file.",
+                UserWarning,
+                stacklevel=1,
+            )
+        return self
 
     @property
     def async_database_url(self) -> str:
