@@ -2,6 +2,7 @@
 PLAN.md
 CLAUDE.md
 checkpoints/
+prompts/
 
 # Python
 __pycache__/

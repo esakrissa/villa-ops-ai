@@ -14,7 +14,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Application lifespan handler for startup and shutdown events."""
     # Startup
     yield
-    # Shutdown
+    # Shutdown — dispose engine connections
+    from app.database import engine
+
+    await engine.dispose()
 
 
 app = FastAPI(
