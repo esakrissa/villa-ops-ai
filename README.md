@@ -66,12 +66,12 @@ The AI agent understands the intent, picks the right tool, executes it, and resp
 │       │                   │                        │
 │       │        ┌──────────▼─────────────────────┐  │
 │       │        │   LangGraph Agent              │  │
-│       │        │   + MCP Client (SSE transport) │  │
+│       │        │ + MCP Client (Streamable HTTP) │  │
 │       │        └──────────┬─────────────────────┘  │
-│       │                   │ SSE/Streamable HTTP    │
+│       │                   │ Streamable HTTP        │
 │       │                   ▼                        │
 │  ┌────────────────────────────────────────────┐    │
-│  │  MCP Server (remote, SSE transport)        │    │
+│  │  MCP Server (Streamable HTTP on /mcp)      │    │
 │  │  booking_search | booking_create           │    │
 │  │  booking_update | booking_analytics        │    │
 │  │  guest_lookup   | property_manage          │    │
@@ -97,7 +97,7 @@ The AI agent understands the intent, picks the right tool, executes it, and resp
 |---|---|
 | **Backend** | Python 3.13+, FastAPI (async) |
 | **Agent** | LangGraph |
-| **Tool Protocol** | MCP (SSE/Streamable HTTP transport) |
+| **Tool Protocol** | MCP (Streamable HTTP transport) |
 | **LLM Gateway** | LiteLLM (Gemini default, Anthropic + OpenAI fallback) |
 | **Payments** | Stripe (Checkout + Webhooks + Customer Portal) |
 | **Database** | PostgreSQL + Alembic migrations |
@@ -145,7 +145,7 @@ The AI agent understands the intent, picks the right tool, executes it, and resp
 4. **Seed the database**
 
    ```bash
-   docker-compose exec backend python seed_data.py
+   docker-compose exec backend python scripts/seed_data.py
    ```
 
 5. **Start Stripe webhook listener (for local dev)**
@@ -158,7 +158,7 @@ The AI agent understands the intent, picks the right tool, executes it, and resp
 
    - Frontend: http://localhost:3000
    - API docs: http://localhost:8000/docs
-   - MCP Server: http://localhost:8001/sse
+   - MCP Server: http://localhost:8001/mcp
 
 ### Running Without Docker
 
@@ -171,7 +171,7 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
 alembic upgrade head
-python seed_data.py
+python scripts/seed_data.py
 uvicorn app.main:app --reload
 ```
 
@@ -250,7 +250,7 @@ Streams SSE events with agent responses and tool call results. AI query usage co
 
 ## MCP Tools
 
-The LangGraph agent connects to the MCP server over SSE/Streamable HTTP and has access to:
+The LangGraph agent connects to the MCP server over Streamable HTTP and has access to:
 
 | Tool | Description |
 |---|---|
@@ -325,11 +325,12 @@ villa-ops-ai/
 │   │   ├── auth/                # JWT + OAuth (Google, GitHub)
 │   │   ├── billing/             # Stripe (checkout, webhooks, plan gating)
 │   │   ├── agent/               # LangGraph agent
-│   │   ├── mcp/                 # MCP server (SSE transport)
+│   │   ├── mcp/                 # MCP server (Streamable HTTP transport)
 │   │   └── services/            # Business logic
 │   ├── tests/
 │   ├── alembic/
-│   ├── seed_data.py
+│   ├── scripts/
+│   │   └── seed_data.py
 │   └── Dockerfile
 ├── frontend/
 │   ├── src/
