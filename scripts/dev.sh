@@ -30,6 +30,7 @@ TUNNEL_PID_FILE="/tmp/villa-ops-tunnel.pid"
 # Ports to tunnel: local:remote
 TUNNEL_PORTS=(
     "8000:localhost:8000"   # FastAPI backend
+    "8001:localhost:8001"   # MCP server (Streamable HTTP)
     "5432:localhost:5432"   # PostgreSQL
     "6379:localhost:6379"   # Redis
 )
@@ -248,6 +249,7 @@ cmd_tunnel_start() {
             local local_port="${port_spec%%:*}"
             case "$local_port" in
                 8000) log_info "  http://localhost:${local_port}  →  FastAPI backend" ;;
+                8001) log_info "  http://localhost:${local_port}  →  MCP server (Streamable HTTP)" ;;
                 5432) log_info "  localhost:${local_port}          →  PostgreSQL" ;;
                 6379) log_info "  localhost:${local_port}          →  Redis" ;;
                 *)    log_info "  localhost:${local_port}" ;;

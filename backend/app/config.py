@@ -65,7 +65,7 @@ class Settings(BaseSettings):
     litellm_cache_enabled: bool = True
 
     # MCP Server
-    mcp_server_url: str = "http://localhost:8001/sse"
+    mcp_server_url: str = "http://localhost:8001/mcp"
 
     # Frontend
     frontend_url: str = "http://localhost:3000"

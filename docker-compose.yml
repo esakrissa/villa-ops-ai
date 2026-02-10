@@ -21,6 +21,34 @@ services:
     restart: unless-stopped
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 
+  mcp:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: villa-ops-mcp
+    ports:
+      - "8001:8001"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://villa:villa_secret@postgres:5432/villa_ops
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./backend:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 10s
+      retries: 3
+    command: python -m app.mcp.server
+
   postgres:
     image: postgres:16-alpine
     container_name: villa-ops-postgres
