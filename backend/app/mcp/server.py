@@ -43,6 +43,8 @@ set_session_factory(mcp_session_factory)
 import app.mcp.tools.booking_tools  # noqa: F401, E402
 import app.mcp.tools.guest_tools  # noqa: F401, E402
 import app.mcp.tools.property_tools  # noqa: F401, E402
+import app.mcp.tools.analytics_tools  # noqa: F401, E402
+import app.mcp.tools.notification_tools  # noqa: F401, E402
 
 
 # ---------------------------------------------------------------------------
