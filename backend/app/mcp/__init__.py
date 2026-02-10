@@ -6,7 +6,7 @@ from mcp.server.transport_security import TransportSecuritySettings
 # Shared FastMCP instance — tools register on this via @mcp.tool()
 mcp = FastMCP(
     name="villaops-mcp",
-    instructions="VillaOps AI MCP server. Provides tools for searching bookings and looking up guest information for Bali villa/hotel property managers.",
+    instructions="VillaOps AI MCP server. Provides tools for managing bookings, guests, and properties for Bali villa/hotel property managers.",
     port=8001,
     stateless_http=True,
     json_response=True,
