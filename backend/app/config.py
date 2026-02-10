@@ -58,7 +58,7 @@ class Settings(BaseSettings):
     stripe_business_price_id: str = ""
 
     # LLM (LiteLLM)
-    default_llm_model: str = "gemini/gemini-3.0-flash"
+    default_llm_model: str = "gemini/gemini-3-flash-preview"
     gemini_api_key: str = ""
     anthropic_api_key: str = ""
     openai_api_key: str = ""

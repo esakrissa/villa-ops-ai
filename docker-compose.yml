@@ -11,6 +11,7 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://villa:villa_secret@postgres:5432/villa_ops
       - REDIS_URL=redis://redis:6379/0
+      - MCP_SERVER_URL=http://mcp:8001/mcp
     volumes:
       - ./backend:/app
     depends_on:

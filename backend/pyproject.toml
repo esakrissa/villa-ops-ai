@@ -34,6 +34,7 @@ dependencies = [
     "langgraph>=0.2.0",
     "litellm>=1.55.0",
     "mcp>=1.0.0",
+    "langchain-litellm>=0.1.0",
     # Payments
     "stripe>=11.0.0",
     # Utilities
@@ -92,6 +93,8 @@ module = [
     "jose.*",
     "litellm.*",
     "langgraph.*",
+    "langchain_litellm.*",
+    "langchain_core.*",
     "mcp.*",
 ]
 ignore_missing_imports = true
