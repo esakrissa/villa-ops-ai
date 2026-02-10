@@ -10,6 +10,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.api.v1.analytics import router as analytics_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.bookings import router as bookings_router
+from app.api.v1.chat import router as chat_router
 from app.api.v1.guests import router as guests_router
 from app.api.v1.properties import router as properties_router
 from app.config import settings
@@ -52,6 +53,7 @@ app.include_router(properties_router)
 app.include_router(bookings_router)
 app.include_router(guests_router)
 app.include_router(analytics_router)
+app.include_router(chat_router)
 
 
 @app.get("/health", tags=["health"])
