@@ -9,6 +9,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.api.v1.analytics import router as analytics_router
 from app.api.v1.auth import router as auth_router
+from app.api.v1.billing import router as billing_router
 from app.api.v1.bookings import router as bookings_router
 from app.api.v1.chat import router as chat_router
 from app.api.v1.guests import router as guests_router
@@ -49,6 +50,7 @@ app.add_middleware(SessionMiddleware, secret_key=settings.jwt_secret_key)
 
 # Routers
 app.include_router(auth_router)
+app.include_router(billing_router)
 app.include_router(properties_router)
 app.include_router(bookings_router)
 app.include_router(guests_router)
