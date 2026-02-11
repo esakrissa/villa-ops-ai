@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_active_user, get_db
+from app.api.deps import check_property_limit, get_current_active_user, get_db
 from app.models.property import Property
 from app.models.user import User
 from app.schemas.auth import MessageResponse
@@ -30,6 +30,7 @@ async def create_property(
     body: PropertyCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
+    _limit_check: None = Depends(check_property_limit),  # Plan gating
 ) -> PropertyResponse:
     """Create a property owned by the authenticated user."""
     prop = Property(

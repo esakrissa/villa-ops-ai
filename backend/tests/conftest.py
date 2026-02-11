@@ -117,7 +117,7 @@ async def test_user(db_session: AsyncSession) -> User:
     db_session.add(user)
     await db_session.flush()
 
-    subscription = Subscription(user_id=user.id, plan="free", status="active")
+    subscription = Subscription(user_id=user.id, plan="business", status="active")
     db_session.add(subscription)
     await db_session.flush()
     await db_session.refresh(user)

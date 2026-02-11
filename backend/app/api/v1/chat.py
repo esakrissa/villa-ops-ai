@@ -27,7 +27,7 @@ from app.agent.memory import (
     load_conversation_messages,
     save_messages,
 )
-from app.api.deps import get_current_active_user, get_db
+from app.api.deps import check_ai_query_limit, get_current_active_user, get_db
 from app.config import settings
 from app.database import async_session_factory
 from app.models.user import User
@@ -49,6 +49,7 @@ async def chat(
     chat_request: ChatRequest,
     db: AsyncSession = Depends(get_db),
     user: User = Depends(get_current_active_user),
+    _limit_check: None = Depends(check_ai_query_limit),  # Plan gating
 ) -> EventSourceResponse:
     """Send a message and stream the agent's response via SSE."""
 

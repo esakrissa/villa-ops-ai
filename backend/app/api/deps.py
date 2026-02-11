@@ -11,6 +11,12 @@ from app.auth.dependencies import (
     get_current_user,
     get_optional_user,
 )
+from app.billing.dependencies import (
+    check_ai_query_limit,
+    check_notification_access,
+    check_property_limit,
+    get_plan_limits,
+)
 from app.database import get_db
 
 __all__ = [
@@ -18,4 +24,8 @@ __all__ = [
     "get_current_user",
     "get_current_active_user",
     "get_optional_user",
+    "get_plan_limits",
+    "check_property_limit",
+    "check_ai_query_limit",
+    "check_notification_access",
 ]
