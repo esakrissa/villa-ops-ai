@@ -12,7 +12,7 @@
 #   ./scripts/dev.sh restart           # down + up
 #   ./scripts/dev.sh logs [service]    # Tail docker compose logs
 #   ./scripts/dev.sh ps                # Show container status
-#   ./scripts/dev.sh tunnel            # Open SSH tunnels (8000, 5432, 6379)
+#   ./scripts/dev.sh tunnel            # Open SSH tunnels (3000, 8000, 5432, 6379)
 #   ./scripts/dev.sh tunnel stop       # Kill SSH tunnels
 #   ./scripts/dev.sh shell [service]   # Exec into a container (default: backend)
 #   ./scripts/dev.sh status            # Show everything: containers, tunnels, sync
@@ -29,6 +29,7 @@ TUNNEL_PID_FILE="/tmp/villa-ops-tunnel.pid"
 
 # Ports to tunnel: local:remote
 TUNNEL_PORTS=(
+    "3000:localhost:3000"   # Next.js frontend
     "8000:localhost:8000"   # FastAPI backend
     "8001:localhost:8001"   # MCP server (Streamable HTTP)
     "5432:localhost:5432"   # PostgreSQL
@@ -248,6 +249,7 @@ cmd_tunnel_start() {
         for port_spec in "${TUNNEL_PORTS[@]}"; do
             local local_port="${port_spec%%:*}"
             case "$local_port" in
+                3000) log_info "  http://localhost:${local_port}  →  Next.js frontend" ;;
                 8000) log_info "  http://localhost:${local_port}  →  FastAPI backend" ;;
                 8001) log_info "  http://localhost:${local_port}  →  MCP server (Streamable HTTP)" ;;
                 5432) log_info "  localhost:${local_port}          →  PostgreSQL" ;;
@@ -336,6 +338,14 @@ cmd_status() {
     else
         log_warn "FastAPI: ${health}"
     fi
+
+    local frontend_health
+    frontend_health=$(remote_exec "curl -s --connect-timeout 3 -o /dev/null -w '%{http_code}' http://localhost:3000" 2>/dev/null || echo "UNREACHABLE")
+    if [[ "$frontend_health" == "200" ]]; then
+        log_success "Frontend: OK (HTTP ${frontend_health})"
+    else
+        log_warn "Frontend: ${frontend_health}"
+    fi
 }
 
 cmd_help() {
@@ -354,7 +364,7 @@ cmd_help() {
     restart           Down + Up
     logs [service]    Tail container logs (all or specific service)
     ps                Show container status
-    tunnel            Open SSH tunnels (localhost:8000/5432/6379)
+    tunnel            Open SSH tunnels (localhost:3000/8000/5432/6379)
     tunnel stop       Close SSH tunnels
     shell [service]   Exec into a container (default: backend)
     status            Show connection, containers, and tunnel status
@@ -371,8 +381,9 @@ cmd_help() {
   Workflow:
     1. ./scripts/dev.sh up             # Sync code + start containers
     2. ./scripts/dev.sh tunnel         # Forward ports to localhost
-    3. Open http://localhost:8000/docs  # Access API docs
-    4. Edit code locally, then:
+    3. Open http://localhost:3000       # Access frontend
+    4. Open http://localhost:8000/docs  # Access API docs
+    5. Edit code locally, then:
        ./scripts/dev.sh sync           # Push changes (hot reload picks them up)
        OR
        ./scripts/dev.sh sync --watch   # Auto-sync on every save
