@@ -25,11 +25,35 @@ def _ts_to_naive(ts: int | None) -> datetime | None:
     return datetime.utcfromtimestamp(ts)
 
 
+def _get_first_item(stripe_sub: stripe.Subscription):
+    """Get the first subscription item, using bracket notation to avoid
+    collision with Python dict .items() in newer Stripe API versions.
+    """
+    sub_items = stripe_sub["items"]
+    if sub_items and sub_items.data:
+        return sub_items.data[0]
+    return None
+
+
 def _get_price_id_from_subscription(stripe_sub: stripe.Subscription) -> str | None:
     """Extract the first price ID from a Stripe subscription's items."""
-    if stripe_sub.items and stripe_sub.items.data:
-        return stripe_sub.items.data[0].price.id
-    return None
+    item = _get_first_item(stripe_sub)
+    return item.price.id if item else None
+
+
+def _get_period(stripe_sub: stripe.Subscription) -> tuple[datetime | None, datetime | None]:
+    """Extract current period start/end from subscription item.
+
+    In Stripe API 2025-08-27 (basil), current_period_start/end moved
+    from the subscription object to the subscription item.
+    """
+    item = _get_first_item(stripe_sub)
+    if item:
+        return (
+            _ts_to_naive(getattr(item, "current_period_start", None)),
+            _ts_to_naive(getattr(item, "current_period_end", None)),
+        )
+    return None, None
 
 
 async def handle_checkout_session_completed(
@@ -62,14 +86,15 @@ async def handle_checkout_session_completed(
         logger.warning("Unknown price ID %s in subscription %s", price_id, subscription_id)
         plan = "free"
 
+    period_start, period_end = _get_period(stripe_sub)
     await update_subscription_from_stripe(
         db,
         subscription=subscription,
         stripe_subscription_id=subscription_id,
         plan=plan,
         status="active",
-        current_period_start=_ts_to_naive(stripe_sub.current_period_start),
-        current_period_end=_ts_to_naive(stripe_sub.current_period_end),
+        current_period_start=period_start,
+        current_period_end=period_end,
         cancel_at_period_end=stripe_sub.cancel_at_period_end or False,
     )
     logger.info(
@@ -105,14 +130,15 @@ async def handle_invoice_paid(db: AsyncSession, event: stripe.Event) -> None:
     if plan is None:
         plan = subscription.plan
 
+    period_start, period_end = _get_period(stripe_sub)
     await update_subscription_from_stripe(
         db,
         subscription=subscription,
         stripe_subscription_id=subscription_id,
         plan=plan,
         status="active",
-        current_period_start=_ts_to_naive(stripe_sub.current_period_start),
-        current_period_end=_ts_to_naive(stripe_sub.current_period_end),
+        current_period_start=period_start,
+        current_period_end=period_end,
         cancel_at_period_end=stripe_sub.cancel_at_period_end or False,
     )
     logger.info("Invoice paid: subscription %s confirmed active", subscription_id)
@@ -145,14 +171,15 @@ async def handle_subscription_updated(
     if plan is None:
         plan = subscription.plan
 
+    period_start, period_end = _get_period(stripe_sub)
     await update_subscription_from_stripe(
         db,
         subscription=subscription,
         stripe_subscription_id=subscription_id,
         plan=plan,
         status=stripe_sub.status,
-        current_period_start=_ts_to_naive(stripe_sub.current_period_start),
-        current_period_end=_ts_to_naive(stripe_sub.current_period_end),
+        current_period_start=period_start,
+        current_period_end=period_end,
         cancel_at_period_end=stripe_sub.cancel_at_period_end or False,
     )
     logger.info(
