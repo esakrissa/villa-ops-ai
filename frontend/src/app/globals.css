@@ -5,4 +5,14 @@
   --font-mono: var(--font-geist-mono), monospace;
   --color-primary: #4f46e5;
   --color-primary-hover: #4338ca;
+  --animate-slide-in-left: slide-in-left 200ms ease-out;
+}
+
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }

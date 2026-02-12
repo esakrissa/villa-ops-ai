@@ -139,6 +139,16 @@ async def chat(
                                         "name": getattr(msg, "name", ""),
                                         "result": msg.content if isinstance(msg.content, str) else str(msg.content),
                                     })
+                                elif isinstance(msg, AIMessage) and msg.tool_calls:
+                                    # Emit tool_call events — "messages" mode may
+                                    # not emit AIMessageChunks with tool_calls for
+                                    # some models (e.g. Gemini via LiteLLM).
+                                    for tc in msg.tool_calls:
+                                        yield json.dumps({
+                                            "type": "tool_call",
+                                            "name": tc.get("name", ""),
+                                            "args": tc.get("args", {}),
+                                        })
                                 elif isinstance(msg, AIMessage) and msg.content and not msg.tool_calls:
                                     # Final AI text response — "messages" mode may
                                     # not emit token chunks for all models, so emit

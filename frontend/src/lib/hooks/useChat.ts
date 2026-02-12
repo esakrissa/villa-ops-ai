@@ -176,13 +176,23 @@ export function useChat(): UseChatReturn {
                       const updated = [...prev];
                       const last = updated[updated.length - 1];
                       if (last && last.role === "assistant") {
-                        updated[updated.length - 1] = {
-                          ...last,
-                          toolCalls: [
-                            ...(last.toolCalls || []),
-                            { name: event.name, args: event.args },
-                          ],
-                        };
+                        // Deduplicate: skip if same tool call already exists
+                        const existing = last.toolCalls || [];
+                        const isDupe = existing.some(
+                          (tc) =>
+                            tc.name === event.name &&
+                            JSON.stringify(tc.args) ===
+                              JSON.stringify(event.args),
+                        );
+                        if (!isDupe) {
+                          updated[updated.length - 1] = {
+                            ...last,
+                            toolCalls: [
+                              ...existing,
+                              { name: event.name, args: event.args },
+                            ],
+                          };
+                        }
                       }
                       return updated;
                     });
