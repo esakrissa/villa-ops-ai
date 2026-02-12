@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 import { useSubscription } from "@/lib/hooks/useSubscription";
 import { apiFetch } from "@/lib/api";
 import { PlanBadge } from "@/components/billing/PlanBadge";
@@ -27,12 +28,10 @@ const upgradeOptions: Record<string, { name: string; display: string; price: str
 export default function BillingPage() {
   const { subscription, loading, error, refetch } = useSubscription();
   const [portalLoading, setPortalLoading] = useState(false);
-  const [portalError, setPortalError] = useState<string | null>(null);
   const [upgradeLoading, setUpgradeLoading] = useState<string | null>(null);
 
   async function handlePortal() {
     setPortalLoading(true);
-    setPortalError(null);
     try {
       const data = await apiFetch<{ portal_url: string }>(
         "/api/v1/billing/portal",
@@ -45,7 +44,7 @@ export default function BillingPage() {
       );
       window.location.href = data.portal_url;
     } catch {
-      setPortalError(
+      toast.error(
         "Unable to open billing portal. Please subscribe to a paid plan first.",
       );
     } finally {
@@ -69,7 +68,7 @@ export default function BillingPage() {
       );
       window.location.href = data.checkout_url;
     } catch {
-      setPortalError("Failed to start checkout. Please try again.");
+      toast.error("Failed to start checkout. Please try again.");
     } finally {
       setUpgradeLoading(null);
     }
@@ -163,12 +162,6 @@ export default function BillingPage() {
               Reactivate
             </button>
           </p>
-        </div>
-      )}
-
-      {portalError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-          <p className="text-sm text-red-700">{portalError}</p>
         </div>
       )}
 

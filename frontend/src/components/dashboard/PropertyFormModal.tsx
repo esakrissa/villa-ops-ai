@@ -8,7 +8,7 @@ interface PropertyFormModalProps {
   property?: Property | null;
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (isNew: boolean) => void;
 }
 
 interface FormData {
@@ -112,7 +112,7 @@ export function PropertyFormModal({
           body: JSON.stringify(body),
         });
       }
-      onSuccess();
+      onSuccess(!isEdit);
       onClose();
     } catch (err) {
       if (err instanceof ApiError && err.status === 402) {

@@ -71,7 +71,7 @@ export default function ChatPage() {
   );
 
   return (
-    <div className="-m-6 flex h-[calc(100%+3rem)]">
+    <div className="-m-4 md:-m-6 flex h-[calc(100%+2rem)] md:h-[calc(100%+3rem)]">
       {/* Conversation sidebar */}
       <ConversationSidebar
         isOpen={sidebarOpen}

@@ -6,6 +6,7 @@ import { useSubscription } from "@/lib/hooks/useSubscription";
 import { PropertyCard } from "@/components/dashboard/PropertyCard";
 import { PropertyFormModal } from "@/components/dashboard/PropertyFormModal";
 import { apiFetch } from "@/lib/api";
+import { toast } from "sonner";
 import type { Property } from "@/lib/hooks/useProperties";
 
 export default function PropertiesPage() {
@@ -30,7 +31,8 @@ export default function PropertiesPage() {
     setFormOpen(true);
   };
 
-  const handleFormSuccess = () => {
+  const handleFormSuccess = (isNew: boolean) => {
+    toast.success(isNew ? "Property created" : "Property updated");
     refetch();
     refetchSubscription();
   };
@@ -43,10 +45,11 @@ export default function PropertiesPage() {
         method: "DELETE",
       });
       setDeleteConfirm(null);
+      toast.success("Property deleted");
       refetch();
       refetchSubscription();
     } catch {
-      // Error is handled by ApiError in apiFetch
+      toast.error("Failed to delete property");
     } finally {
       setDeleting(false);
     }
