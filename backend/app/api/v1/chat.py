@@ -128,7 +128,7 @@ async def chat(
                     elif mode == "updates":
                         # "updates" emits {node_name: {key: value}} after each node.
                         # Collect complete messages for persistence and stream
-                        # tool results to the client in real-time.
+                        # tool results and final AI text to the client.
                         for node_name, node_output in chunk.items():
                             node_msgs = node_output.get("messages", [])
                             for msg in node_msgs:
@@ -138,6 +138,15 @@ async def chat(
                                         "type": "tool_result",
                                         "name": getattr(msg, "name", ""),
                                         "result": msg.content if isinstance(msg.content, str) else str(msg.content),
+                                    })
+                                elif isinstance(msg, AIMessage) and msg.content and not msg.tool_calls:
+                                    # Final AI text response — "messages" mode may
+                                    # not emit token chunks for all models, so emit
+                                    # the complete text from "updates" as a fallback.
+                                    content = msg.content if isinstance(msg.content, str) else str(msg.content)
+                                    yield json.dumps({
+                                        "type": "token",
+                                        "content": content,
                                     })
 
                 # Save all new messages to DB
