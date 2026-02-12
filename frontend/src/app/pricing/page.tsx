@@ -90,8 +90,12 @@ export default function PricingPage() {
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [authed, setAuthed] = useState(false);
   const { subscription } = useSubscription();
-  const authed = isAuthenticated();
+
+  useEffect(() => {
+    setAuthed(isAuthenticated());
+  }, []);
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/v1/billing/plans`)
