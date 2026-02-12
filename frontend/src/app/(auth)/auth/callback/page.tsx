@@ -3,10 +3,12 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, Suspense } from "react";
 import { saveTokens } from "@/lib/auth";
+import { useAuth } from "@/lib/hooks/useAuth";
 
 function CallbackHandler() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { refreshUser } = useAuth();
 
   useEffect(() => {
     const accessToken = searchParams.get("access_token");
@@ -14,11 +16,11 @@ function CallbackHandler() {
 
     if (accessToken && refreshToken) {
       saveTokens(accessToken, refreshToken);
-      router.replace("/chat");
+      refreshUser().then(() => router.replace("/chat"));
     } else {
       router.replace("/login?error=oauth_failed");
     }
-  }, [searchParams, router]);
+  }, [searchParams, router, refreshUser]);
 
   return (
     <div className="flex min-h-screen items-center justify-center">

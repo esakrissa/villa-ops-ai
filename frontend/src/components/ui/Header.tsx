@@ -1,19 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { getMe, logout } from "@/lib/auth";
-import type { User } from "@/lib/auth";
+import { useState, useRef, useEffect } from "react";
+import { useAuth } from "@/lib/hooks/useAuth";
 
 export function Header({ onMenuToggle }: { onMenuToggle?: () => void }) {
-  const [user, setUser] = useState<User | null>(null);
+  const { user, logout } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    getMe()
-      .then(setUser)
-      .catch(() => {});
-  }, []);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {

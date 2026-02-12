@@ -12,6 +12,8 @@ export class ApiError extends Error {
   }
 }
 
+let isRefreshing = false;
+
 export async function apiFetch<T>(
   path: string,
   options: RequestInit = {},
@@ -36,6 +38,29 @@ export async function apiFetch<T>(
   });
 
   if (!res.ok) {
+    if (
+      res.status === 401 &&
+      !isRefreshing &&
+      path !== "/api/v1/auth/refresh"
+    ) {
+      isRefreshing = true;
+      try {
+        // Lazy import to avoid circular dependency (auth.ts imports api.ts)
+        const { refreshTokens } = await import("./auth");
+        await refreshTokens();
+        isRefreshing = false;
+        return apiFetch<T>(path, options);
+      } catch {
+        isRefreshing = false;
+        const { clearTokens } = await import("./auth");
+        clearTokens();
+        if (typeof window !== "undefined") {
+          window.location.href = "/login";
+        }
+        throw new ApiError(401, { detail: "Session expired" });
+      }
+    }
+
     const data = await res.json().catch(() => ({}));
     throw new ApiError(res.status, data);
   }

@@ -4,9 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { login } from "@/lib/auth";
 import { ApiError } from "@/lib/api";
+import { useAuth } from "@/lib/hooks/useAuth";
 
 export function LoginForm() {
   const router = useRouter();
+  const { refreshUser } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -19,6 +21,7 @@ export function LoginForm() {
 
     try {
       await login(email, password);
+      await refreshUser();
       router.push("/chat");
     } catch (err) {
       if (err instanceof ApiError) {
