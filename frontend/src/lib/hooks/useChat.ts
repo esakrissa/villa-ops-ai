@@ -276,13 +276,36 @@ export function useChat(): UseChatReturn {
       const data = await apiFetch<ConversationDetail>(
         `/api/v1/chat/conversations/${id}`,
       );
-      const loaded: ChatMessage[] = data.messages.map((m) => ({
-        id: m.id,
-        role: m.role as ChatMessage["role"],
-        content: m.content,
-        toolCalls: m.tool_calls || undefined,
-        toolResults: m.tool_results || undefined,
-      }));
+      // Merge tool messages into preceding assistant message's toolResults
+      // Backend stores them as separate rows, but the UI expects them combined
+      const loaded: ChatMessage[] = [];
+      for (const m of data.messages) {
+        if (m.role === "tool") {
+          // Find the last assistant message and append this as a tool result
+          for (let i = loaded.length - 1; i >= 0; i--) {
+            if (loaded[i].role === "assistant" && loaded[i].toolCalls?.length) {
+              const resultIndex = loaded[i].toolResults?.length ?? 0;
+              const toolCall = loaded[i].toolCalls![resultIndex];
+              loaded[i] = {
+                ...loaded[i],
+                toolResults: [
+                  ...(loaded[i].toolResults ?? []),
+                  { name: toolCall?.name ?? "tool", result: m.content },
+                ],
+              };
+              break;
+            }
+          }
+          continue;
+        }
+        loaded.push({
+          id: m.id,
+          role: m.role as ChatMessage["role"],
+          content: m.content,
+          toolCalls: m.tool_calls || undefined,
+          toolResults: undefined,
+        });
+      }
       setMessages(loaded);
       setConversationId(id);
     } catch (err) {
