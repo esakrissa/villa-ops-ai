@@ -8,6 +8,12 @@ export default function Home() {
         <span className="text-xl font-bold text-indigo-600">VillaOps AI</span>
         <div className="flex items-center gap-3">
           <Link
+            href="/pricing"
+            className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+          >
+            Pricing
+          </Link>
+          <Link
             href="/login"
             className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
           >
@@ -40,10 +46,10 @@ export default function Home() {
             Start for free
           </Link>
           <Link
-            href="/login"
+            href="/pricing"
             className="rounded-lg border border-gray-300 px-6 py-3 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50"
           >
-            Sign in
+            View pricing
           </Link>
         </div>
       </main>
