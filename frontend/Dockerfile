@@ -22,6 +22,8 @@ FROM base AS build
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+# Empty string = use relative paths (frontend behind nginx on same domain)
+ENV NEXT_PUBLIC_API_URL=""
 
 RUN npm run build
 

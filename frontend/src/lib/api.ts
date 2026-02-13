@@ -1,8 +1,7 @@
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  (typeof window !== "undefined" && window.location.hostname !== "localhost"
-    ? ""
-    : "http://localhost:8000");
+// In production Docker build, NEXT_PUBLIC_API_URL="" (empty string = relative paths via nginx).
+// In local dev, NEXT_PUBLIC_API_URL is undefined → falls back to localhost:8000.
+// Uses ?? (not ||) so empty string is preserved as a valid value.
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export class ApiError extends Error {
   constructor(
