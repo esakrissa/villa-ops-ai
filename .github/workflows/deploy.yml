@@ -75,8 +75,8 @@ jobs:
           for FILE in .aws/backend-task-def.json .aws/mcp-task-def.json; do
             sed -i "s|__DATABASE_URL__|${{ secrets.PROD_DATABASE_URL }}|g" "$FILE"
             sed -i "s|__REDIS_URL__|${{ secrets.PROD_REDIS_URL }}|g" "$FILE"
+            sed -i "s|__JWT_SECRET_KEY__|${{ secrets.PROD_JWT_SECRET_KEY }}|g" "$FILE"
           done
-          sed -i "s|__JWT_SECRET_KEY__|${{ secrets.PROD_JWT_SECRET_KEY }}|g" .aws/backend-task-def.json
           sed -i "s|__STRIPE_SECRET_KEY__|${{ secrets.PROD_STRIPE_SECRET_KEY }}|g" .aws/backend-task-def.json
           sed -i "s|__STRIPE_WEBHOOK_SECRET__|${{ secrets.PROD_STRIPE_WEBHOOK_SECRET }}|g" .aws/backend-task-def.json
           sed -i "s|__STRIPE_PUBLISHABLE_KEY__|${{ secrets.PROD_STRIPE_PUBLISHABLE_KEY }}|g" .aws/backend-task-def.json
