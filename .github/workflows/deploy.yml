@@ -1,0 +1,98 @@
+name: Deploy to AWS
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  deploy:
+    name: Deploy to ECS
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
+    environment: production
+
+    env:
+      AWS_REGION: us-east-1
+      ECR_BACKEND_REPO: villa-ops-backend
+      ECR_FRONTEND_REPO: villa-ops-frontend
+      ECS_CLUSTER: villa-ops-cluster
+      ECS_BACKEND_SERVICE: villa-ops-backend
+      ECS_FRONTEND_SERVICE: villa-ops-frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      # NOTE: This workflow is a scaffold. Day 28 will:
+      #   - Create ECR repos + ECS cluster/services on AWS account 930936105501
+      #   - Store AWS credentials as GitHub Secrets
+      #   - Create ECS task definition JSON files in this repo
+      #   - Flesh out these deploy steps
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push backend image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_BACKEND_REPO:$IMAGE_TAG ./backend
+          docker push $ECR_REGISTRY/$ECR_BACKEND_REPO:$IMAGE_TAG
+          docker tag $ECR_REGISTRY/$ECR_BACKEND_REPO:$IMAGE_TAG $ECR_REGISTRY/$ECR_BACKEND_REPO:latest
+          docker push $ECR_REGISTRY/$ECR_BACKEND_REPO:latest
+
+      - name: Build and push frontend image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_FRONTEND_REPO:$IMAGE_TAG --target prod ./frontend
+          docker push $ECR_REGISTRY/$ECR_FRONTEND_REPO:$IMAGE_TAG
+          docker tag $ECR_REGISTRY/$ECR_FRONTEND_REPO:$IMAGE_TAG $ECR_REGISTRY/$ECR_FRONTEND_REPO:latest
+          docker push $ECR_REGISTRY/$ECR_FRONTEND_REPO:latest
+
+      # --- ECS deployment steps (Day 28) ---
+      # Once task definitions exist in the repo, uncomment:
+      #
+      # - name: Render backend task definition
+      #   id: render-backend
+      #   uses: aws-actions/amazon-ecs-render-task-definition@v1
+      #   with:
+      #     task-definition: .aws/backend-task-def.json
+      #     container-name: villa-ops-backend
+      #     image: ${{ steps.login-ecr.outputs.registry }}/villa-ops-backend:${{ github.event.workflow_run.head_sha }}
+      #
+      # - name: Deploy backend to ECS
+      #   uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+      #   with:
+      #     task-definition: ${{ steps.render-backend.outputs.task-definition }}
+      #     service: ${{ env.ECS_BACKEND_SERVICE }}
+      #     cluster: ${{ env.ECS_CLUSTER }}
+      #     wait-for-service-stability: true
+      #
+      # - name: Render frontend task definition
+      #   id: render-frontend
+      #   uses: aws-actions/amazon-ecs-render-task-definition@v1
+      #   with:
+      #     task-definition: .aws/frontend-task-def.json
+      #     container-name: villa-ops-frontend
+      #     image: ${{ steps.login-ecr.outputs.registry }}/villa-ops-frontend:${{ github.event.workflow_run.head_sha }}
+      #
+      # - name: Deploy frontend to ECS
+      #   uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+      #   with:
+      #     task-definition: ${{ steps.render-frontend.outputs.task-definition }}
+      #     service: ${{ env.ECS_FRONTEND_SERVICE }}
+      #     cluster: ${{ env.ECS_CLUSTER }}
+      #     wait-for-service-stability: true

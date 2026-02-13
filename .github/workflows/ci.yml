@@ -1,0 +1,171 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend/
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-${{ hashFiles('backend/pyproject.toml') }}
+          restore-keys: |
+            pip-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Run ruff
+        run: ruff check --output-format=github app/
+
+      - name: Run mypy
+        run: mypy app/
+
+  test:
+    name: Tests & Coverage
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend/
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: villa
+          POSTGRES_PASSWORD: villa_secret
+          POSTGRES_DB: villa_ops
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U villa -d villa_ops"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql+asyncpg://villa:villa_secret@localhost:5432/villa_ops
+      REDIS_URL: redis://localhost:6379/0
+      JWT_SECRET_KEY: test-secret-key-for-ci
+      JWT_ALGORITHM: HS256
+      MCP_SERVER_URL: http://localhost:8001/mcp
+      STRIPE_SECRET_KEY: sk_test_fake
+      STRIPE_WEBHOOK_SECRET: whsec_test_fake
+      STRIPE_PRO_PRICE_ID: price_test_pro
+      STRIPE_BUSINESS_PRICE_ID: price_test_business
+      DEFAULT_LLM_MODEL: gemini/gemini-3-flash-preview
+      FRONTEND_URL: http://localhost:3000
+      CORS_ORIGINS: '["http://localhost:3000"]'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-${{ hashFiles('backend/pyproject.toml') }}
+          restore-keys: |
+            pip-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Create test database
+        run: PGPASSWORD=villa_secret createdb -h localhost -U villa villa_ops_test
+
+      - name: Run tests with coverage
+        run: >-
+          pytest
+          --cov=app
+          --cov-report=term-missing
+          --cov-report=xml
+          --cov-fail-under=80
+          tests/ -v
+
+  build:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build backend image
+        run: docker build -t villa-ops-backend:${{ github.sha }} ./backend
+
+      - name: Build frontend image
+        run: docker build -t villa-ops-frontend:${{ github.sha }} --target prod ./frontend
+
+      # --- ECR push (Day 28 — after AWS infra is provisioned) ---
+      # The target AWS account is 930936105501 (gitlab-user profile).
+      # Day 28 will:
+      #   1. Create ECR repos (villa-ops-backend, villa-ops-frontend)
+      #   2. Add AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY to GitHub Secrets
+      #   3. Uncomment these steps:
+      #
+      # - name: Configure AWS credentials
+      #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      #   uses: aws-actions/configure-aws-credentials@v4
+      #   with:
+      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      #     aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+      #
+      # - name: Login to Amazon ECR
+      #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      #   id: login-ecr
+      #   uses: aws-actions/amazon-ecr-login@v2
+      #
+      # - name: Push images to ECR
+      #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      #   env:
+      #     ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+      #     IMAGE_TAG: ${{ github.sha }}
+      #   run: |
+      #     docker tag villa-ops-backend:$IMAGE_TAG $ECR_REGISTRY/villa-ops-backend:$IMAGE_TAG
+      #     docker push $ECR_REGISTRY/villa-ops-backend:$IMAGE_TAG
+      #     docker tag villa-ops-frontend:$IMAGE_TAG $ECR_REGISTRY/villa-ops-frontend:$IMAGE_TAG
+      #     docker push $ECR_REGISTRY/villa-ops-frontend:$IMAGE_TAG
