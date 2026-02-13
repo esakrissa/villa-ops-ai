@@ -12,7 +12,7 @@ mcp = FastMCP(
     json_response=True,
     transport_security=TransportSecuritySettings(
         enable_dns_rebinding_protection=True,
-        allowed_hosts=["localhost:8001", "mcp:8001", "127.0.0.1:8001"],
+        allowed_hosts=["localhost:8001", "mcp:8001", "127.0.0.1:8001", "mcp.villaops.local:8001"],
     ),
 )
 
