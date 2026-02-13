@@ -85,11 +85,11 @@ jobs:
           sed -i "s|__GEMINI_API_KEY__|${{ secrets.PROD_GEMINI_API_KEY }}|g" .aws/backend-task-def.json
           sed -i "s|__GOOGLE_CLIENT_ID__|${{ secrets.PROD_GOOGLE_CLIENT_ID }}|g" .aws/backend-task-def.json
           sed -i "s|__GOOGLE_CLIENT_SECRET__|${{ secrets.PROD_GOOGLE_CLIENT_SECRET }}|g" .aws/backend-task-def.json
-          sed -i "s|__GOOGLE_REDIRECT_URI__|placeholder|g" .aws/backend-task-def.json
+          sed -i "s|__GOOGLE_REDIRECT_URI__|https://villaops.esakrissa.com/api/v1/auth/google/callback|g" .aws/backend-task-def.json
           sed -i "s|__GITHUB_CLIENT_ID__|${{ secrets.PROD_GITHUB_CLIENT_ID }}|g" .aws/backend-task-def.json
           sed -i "s|__GITHUB_CLIENT_SECRET__|${{ secrets.PROD_GITHUB_CLIENT_SECRET }}|g" .aws/backend-task-def.json
-          sed -i "s|__GITHUB_REDIRECT_URI__|placeholder|g" .aws/backend-task-def.json
-          sed -i "s|__FRONTEND_URL__|http://placeholder|g" .aws/backend-task-def.json
+          sed -i "s|__GITHUB_REDIRECT_URI__|https://villaops.esakrissa.com/api/v1/auth/github/callback|g" .aws/backend-task-def.json
+          sed -i "s|__FRONTEND_URL__|https://villaops.esakrissa.com|g" .aws/backend-task-def.json
 
       # --- ECS deployment (Nginx proxy replaces ALB) ---
 
@@ -156,3 +156,37 @@ jobs:
           service: ${{ env.ECS_NGINX_SERVICE }}
           cluster: ${{ env.ECS_CLUSTER }}
           wait-for-service-stability: true
+
+      # --- Update Cloudflare DNS with new nginx IP ---
+      - name: Update Cloudflare DNS
+        continue-on-error: true
+        env:
+          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ZONE_ID: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+        run: |
+          # Get nginx task ENI and public IP
+          TASK_ARN=$(aws ecs list-tasks --cluster $ECS_CLUSTER --service-name $ECS_NGINX_SERVICE --query "taskArns[0]" --output text)
+          ENI=$(aws ecs describe-tasks --cluster $ECS_CLUSTER --tasks "$TASK_ARN" --query "tasks[0].attachments[0].details[?name=='networkInterfaceId'].value | [0]" --output text)
+          NGINX_IP=$(aws ec2 describe-network-interfaces --network-interface-ids "$ENI" --query "NetworkInterfaces[0].Association.PublicIp" --output text)
+          echo "Nginx IP: $NGINX_IP"
+
+          # Find existing DNS record for villaops.esakrissa.com
+          RECORD_ID=$(curl -s -X GET "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/dns_records?name=villaops.esakrissa.com&type=A" \
+            -H "Authorization: Bearer $CF_API_TOKEN" \
+            -H "Content-Type: application/json" | jq -r '.result[0].id // empty')
+
+          if [ -n "$RECORD_ID" ]; then
+            # Update existing record
+            curl -s -X PUT "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/dns_records/$RECORD_ID" \
+              -H "Authorization: Bearer $CF_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              --data "{\"type\":\"A\",\"name\":\"villaops\",\"content\":\"$NGINX_IP\",\"ttl\":1,\"proxied\":true}" | jq '.success'
+            echo "Updated DNS record to $NGINX_IP"
+          else
+            # Create new record
+            curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$CF_ZONE_ID/dns_records" \
+              -H "Authorization: Bearer $CF_API_TOKEN" \
+              -H "Content-Type: application/json" \
+              --data "{\"type\":\"A\",\"name\":\"villaops\",\"content\":\"$NGINX_IP\",\"ttl\":1,\"proxied\":true}" | jq '.success'
+            echo "Created DNS record pointing to $NGINX_IP"
+          fi
