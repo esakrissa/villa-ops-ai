@@ -15,7 +15,7 @@ jobs:
   deploy:
     name: Deploy to ECS
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.conclusion == 'success'
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     environment: production
 
     env:
@@ -35,11 +35,24 @@ jobs:
         with:
           fetch-depth: 2
 
+      - name: Set image tag
+        id: vars
+        run: |
+          # workflow_dispatch uses github.sha; workflow_run uses the triggering commit SHA
+          TAG="${{ github.event.workflow_run.head_sha || github.sha }}"
+          echo "image_tag=$TAG" >> $GITHUB_OUTPUT
+          echo "Image tag: $TAG"
+
       # --- Detect which services need deployment ---
       - name: Detect changes
         id: changes
         run: |
-          CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "FULL_DEPLOY")
+          # Manual dispatch → full deploy; otherwise detect changes
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            CHANGED="FULL_DEPLOY"
+          else
+            CHANGED=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "FULL_DEPLOY")
+          fi
           echo "Changed files:"
           echo "$CHANGED"
 
@@ -47,7 +60,7 @@ jobs:
           FRONTEND=false
           NGINX=false
 
-          # Full deploy if git diff fails (first commit, force push, etc.)
+          # Full deploy if manual dispatch, git diff fails, etc.
           if echo "$CHANGED" | grep -q "FULL_DEPLOY"; then
             BACKEND=true
             FRONTEND=true
@@ -99,7 +112,7 @@ jobs:
         if: steps.changes.outputs.backend == 'true'
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
+          IMAGE_TAG: ${{ steps.vars.outputs.image_tag }}
         run: |
           docker build -t $ECR_REGISTRY/$ECR_BACKEND_REPO:$IMAGE_TAG ./backend
           docker push $ECR_REGISTRY/$ECR_BACKEND_REPO:$IMAGE_TAG
@@ -110,7 +123,7 @@ jobs:
         if: steps.changes.outputs.frontend == 'true'
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
+          IMAGE_TAG: ${{ steps.vars.outputs.image_tag }}
         run: |
           docker build -t $ECR_REGISTRY/$ECR_FRONTEND_REPO:$IMAGE_TAG --target prod ./frontend
           docker push $ECR_REGISTRY/$ECR_FRONTEND_REPO:$IMAGE_TAG
@@ -121,7 +134,7 @@ jobs:
         if: steps.changes.outputs.nginx == 'true'
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
+          IMAGE_TAG: ${{ steps.vars.outputs.image_tag }}
         run: |
           docker build -t $ECR_REGISTRY/$ECR_NGINX_REPO:$IMAGE_TAG ./.aws/nginx
           docker push $ECR_REGISTRY/$ECR_NGINX_REPO:$IMAGE_TAG
@@ -160,7 +173,7 @@ jobs:
         with:
           task-definition: .aws/backend-task-def.json
           container-name: villa-ops-backend
-          image: ${{ steps.login-ecr.outputs.registry }}/villa-ops-backend:${{ github.event.workflow_run.head_sha }}
+          image: ${{ steps.login-ecr.outputs.registry }}/villa-ops-backend:${{ steps.vars.outputs.image_tag }}
 
       - name: Deploy backend to ECS
         if: steps.changes.outputs.backend == 'true'
@@ -178,7 +191,7 @@ jobs:
         with:
           task-definition: .aws/mcp-task-def.json
           container-name: villa-ops-mcp
-          image: ${{ steps.login-ecr.outputs.registry }}/villa-ops-backend:${{ github.event.workflow_run.head_sha }}
+          image: ${{ steps.login-ecr.outputs.registry }}/villa-ops-backend:${{ steps.vars.outputs.image_tag }}
 
       - name: Deploy MCP to ECS
         if: steps.changes.outputs.backend == 'true'
@@ -198,7 +211,7 @@ jobs:
         with:
           task-definition: .aws/frontend-task-def.json
           container-name: villa-ops-frontend
-          image: ${{ steps.login-ecr.outputs.registry }}/villa-ops-frontend:${{ github.event.workflow_run.head_sha }}
+          image: ${{ steps.login-ecr.outputs.registry }}/villa-ops-frontend:${{ steps.vars.outputs.image_tag }}
 
       - name: Deploy frontend to ECS
         if: steps.changes.outputs.frontend == 'true'
@@ -218,7 +231,7 @@ jobs:
         with:
           task-definition: .aws/nginx-task-def.json
           container-name: villa-ops-nginx
-          image: ${{ steps.login-ecr.outputs.registry }}/villa-ops-nginx:${{ github.event.workflow_run.head_sha }}
+          image: ${{ steps.login-ecr.outputs.registry }}/villa-ops-nginx:${{ steps.vars.outputs.image_tag }}
 
       - name: Deploy nginx to ECS
         if: steps.changes.outputs.nginx == 'true'
