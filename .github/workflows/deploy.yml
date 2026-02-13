@@ -17,19 +17,16 @@ jobs:
       AWS_REGION: us-east-1
       ECR_BACKEND_REPO: villa-ops-backend
       ECR_FRONTEND_REPO: villa-ops-frontend
+      ECR_NGINX_REPO: villa-ops-nginx
       ECS_CLUSTER: villa-ops-cluster
       ECS_BACKEND_SERVICE: villa-ops-backend
       ECS_FRONTEND_SERVICE: villa-ops-frontend
+      ECS_MCP_SERVICE: villa-ops-mcp
+      ECS_NGINX_SERVICE: villa-ops-nginx
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
-
-      # NOTE: This workflow is a scaffold. Day 28 will:
-      #   - Create ECR repos + ECS cluster/services on AWS account 930936105501
-      #   - Store AWS credentials as GitHub Secrets
-      #   - Create ECS task definition JSON files in this repo
-      #   - Flesh out these deploy steps
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -62,37 +59,100 @@ jobs:
           docker tag $ECR_REGISTRY/$ECR_FRONTEND_REPO:$IMAGE_TAG $ECR_REGISTRY/$ECR_FRONTEND_REPO:latest
           docker push $ECR_REGISTRY/$ECR_FRONTEND_REPO:latest
 
-      # --- ECS deployment steps (Day 28) ---
-      # Once task definitions exist in the repo, uncomment:
-      #
-      # - name: Render backend task definition
-      #   id: render-backend
-      #   uses: aws-actions/amazon-ecs-render-task-definition@v1
-      #   with:
-      #     task-definition: .aws/backend-task-def.json
-      #     container-name: villa-ops-backend
-      #     image: ${{ steps.login-ecr.outputs.registry }}/villa-ops-backend:${{ github.event.workflow_run.head_sha }}
-      #
-      # - name: Deploy backend to ECS
-      #   uses: aws-actions/amazon-ecs-deploy-task-definition@v2
-      #   with:
-      #     task-definition: ${{ steps.render-backend.outputs.task-definition }}
-      #     service: ${{ env.ECS_BACKEND_SERVICE }}
-      #     cluster: ${{ env.ECS_CLUSTER }}
-      #     wait-for-service-stability: true
-      #
-      # - name: Render frontend task definition
-      #   id: render-frontend
-      #   uses: aws-actions/amazon-ecs-render-task-definition@v1
-      #   with:
-      #     task-definition: .aws/frontend-task-def.json
-      #     container-name: villa-ops-frontend
-      #     image: ${{ steps.login-ecr.outputs.registry }}/villa-ops-frontend:${{ github.event.workflow_run.head_sha }}
-      #
-      # - name: Deploy frontend to ECS
-      #   uses: aws-actions/amazon-ecs-deploy-task-definition@v2
-      #   with:
-      #     task-definition: ${{ steps.render-frontend.outputs.task-definition }}
-      #     service: ${{ env.ECS_FRONTEND_SERVICE }}
-      #     cluster: ${{ env.ECS_CLUSTER }}
-      #     wait-for-service-stability: true
+      - name: Build and push nginx image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_NGINX_REPO:$IMAGE_TAG ./.aws/nginx
+          docker push $ECR_REGISTRY/$ECR_NGINX_REPO:$IMAGE_TAG
+          docker tag $ECR_REGISTRY/$ECR_NGINX_REPO:$IMAGE_TAG $ECR_REGISTRY/$ECR_NGINX_REPO:latest
+          docker push $ECR_REGISTRY/$ECR_NGINX_REPO:latest
+
+      # --- Inject secrets into task definition templates ---
+      - name: Inject secrets into task definitions
+        run: |
+          for FILE in .aws/backend-task-def.json .aws/mcp-task-def.json; do
+            sed -i "s|__DATABASE_URL__|${{ secrets.PROD_DATABASE_URL }}|g" "$FILE"
+            sed -i "s|__REDIS_URL__|${{ secrets.PROD_REDIS_URL }}|g" "$FILE"
+          done
+          sed -i "s|__JWT_SECRET_KEY__|${{ secrets.PROD_JWT_SECRET_KEY }}|g" .aws/backend-task-def.json
+          sed -i "s|__STRIPE_SECRET_KEY__|${{ secrets.PROD_STRIPE_SECRET_KEY }}|g" .aws/backend-task-def.json
+          sed -i "s|__STRIPE_WEBHOOK_SECRET__|${{ secrets.PROD_STRIPE_WEBHOOK_SECRET }}|g" .aws/backend-task-def.json
+          sed -i "s|__STRIPE_PUBLISHABLE_KEY__|${{ secrets.PROD_STRIPE_PUBLISHABLE_KEY }}|g" .aws/backend-task-def.json
+          sed -i "s|__STRIPE_PRO_PRICE_ID__|${{ secrets.PROD_STRIPE_PRO_PRICE_ID }}|g" .aws/backend-task-def.json
+          sed -i "s|__STRIPE_BUSINESS_PRICE_ID__|${{ secrets.PROD_STRIPE_BUSINESS_PRICE_ID }}|g" .aws/backend-task-def.json
+          sed -i "s|__GEMINI_API_KEY__|${{ secrets.PROD_GEMINI_API_KEY }}|g" .aws/backend-task-def.json
+          sed -i "s|__GOOGLE_CLIENT_ID__|${{ secrets.PROD_GOOGLE_CLIENT_ID }}|g" .aws/backend-task-def.json
+          sed -i "s|__GOOGLE_CLIENT_SECRET__|${{ secrets.PROD_GOOGLE_CLIENT_SECRET }}|g" .aws/backend-task-def.json
+          sed -i "s|__GOOGLE_REDIRECT_URI__|placeholder|g" .aws/backend-task-def.json
+          sed -i "s|__GITHUB_CLIENT_ID__|${{ secrets.PROD_GITHUB_CLIENT_ID }}|g" .aws/backend-task-def.json
+          sed -i "s|__GITHUB_CLIENT_SECRET__|${{ secrets.PROD_GITHUB_CLIENT_SECRET }}|g" .aws/backend-task-def.json
+          sed -i "s|__GITHUB_REDIRECT_URI__|placeholder|g" .aws/backend-task-def.json
+          sed -i "s|__FRONTEND_URL__|http://placeholder|g" .aws/backend-task-def.json
+
+      # --- ECS deployment (Nginx proxy replaces ALB) ---
+
+      - name: Render backend task definition
+        id: render-backend
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: .aws/backend-task-def.json
+          container-name: villa-ops-backend
+          image: ${{ steps.login-ecr.outputs.registry }}/villa-ops-backend:${{ github.event.workflow_run.head_sha }}
+
+      - name: Deploy backend to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render-backend.outputs.task-definition }}
+          service: ${{ env.ECS_BACKEND_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+      - name: Render MCP task definition
+        id: render-mcp
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: .aws/mcp-task-def.json
+          container-name: villa-ops-mcp
+          image: ${{ steps.login-ecr.outputs.registry }}/villa-ops-backend:${{ github.event.workflow_run.head_sha }}
+
+      - name: Deploy MCP to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render-mcp.outputs.task-definition }}
+          service: ${{ env.ECS_MCP_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+      - name: Render frontend task definition
+        id: render-frontend
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: .aws/frontend-task-def.json
+          container-name: villa-ops-frontend
+          image: ${{ steps.login-ecr.outputs.registry }}/villa-ops-frontend:${{ github.event.workflow_run.head_sha }}
+
+      - name: Deploy frontend to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render-frontend.outputs.task-definition }}
+          service: ${{ env.ECS_FRONTEND_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+      - name: Render nginx task definition
+        id: render-nginx
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: .aws/nginx-task-def.json
+          container-name: villa-ops-nginx
+          image: ${{ steps.login-ecr.outputs.registry }}/villa-ops-nginx:${{ github.event.workflow_run.head_sha }}
+
+      - name: Deploy nginx to ECS
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render-nginx.outputs.task-definition }}
+          service: ${{ env.ECS_NGINX_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true

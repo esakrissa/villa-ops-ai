@@ -142,33 +142,27 @@ jobs:
       - name: Build frontend image
         run: docker build -t villa-ops-frontend:${{ github.sha }} --target prod ./frontend
 
-      # --- ECR push (Day 28 — after AWS infra is provisioned) ---
-      # The target AWS account is 930936105501 (gitlab-user profile).
-      # Day 28 will:
-      #   1. Create ECR repos (villa-ops-backend, villa-ops-frontend)
-      #   2. Add AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY to GitHub Secrets
-      #   3. Uncomment these steps:
-      #
-      # - name: Configure AWS credentials
-      #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      #   uses: aws-actions/configure-aws-credentials@v4
-      #   with:
-      #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      #     aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
-      #
-      # - name: Login to Amazon ECR
-      #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      #   id: login-ecr
-      #   uses: aws-actions/amazon-ecr-login@v2
-      #
-      # - name: Push images to ECR
-      #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      #   env:
-      #     ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-      #     IMAGE_TAG: ${{ github.sha }}
-      #   run: |
-      #     docker tag villa-ops-backend:$IMAGE_TAG $ECR_REGISTRY/villa-ops-backend:$IMAGE_TAG
-      #     docker push $ECR_REGISTRY/villa-ops-backend:$IMAGE_TAG
-      #     docker tag villa-ops-frontend:$IMAGE_TAG $ECR_REGISTRY/villa-ops-frontend:$IMAGE_TAG
-      #     docker push $ECR_REGISTRY/villa-ops-frontend:$IMAGE_TAG
+      # --- ECR push (on main branch only) ---
+      - name: Configure AWS credentials
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - name: Login to Amazon ECR
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Push images to ECR
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker tag villa-ops-backend:$IMAGE_TAG $ECR_REGISTRY/villa-ops-backend:$IMAGE_TAG
+          docker push $ECR_REGISTRY/villa-ops-backend:$IMAGE_TAG
+          docker tag villa-ops-frontend:$IMAGE_TAG $ECR_REGISTRY/villa-ops-frontend:$IMAGE_TAG
+          docker push $ECR_REGISTRY/villa-ops-frontend:$IMAGE_TAG
