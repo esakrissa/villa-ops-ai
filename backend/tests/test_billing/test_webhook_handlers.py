@@ -54,13 +54,24 @@ async def _create_user_with_subscription(
     return user, subscription
 
 
-def _make_event(event_type: str, data_object: dict) -> SimpleNamespace:
+class _StripeObj(SimpleNamespace):
+    """SimpleNamespace with bracket notation support (like Stripe API objects).
+
+    Stripe API 2025-08-27 (basil) changed subscription.items to require
+    bracket notation to avoid collision with Python dict .items().
+    """
+
+    def __getitem__(self, key: str):
+        return getattr(self, key)
+
+
+def _make_event(event_type: str, data_object: dict) -> _StripeObj:
     """Create a fake Stripe Event-like object."""
-    obj = SimpleNamespace(**data_object)
-    return SimpleNamespace(
+    obj = _StripeObj(**data_object)
+    return _StripeObj(
         type=event_type,
         id=f"evt_test_{uuid.uuid4().hex[:8]}",
-        data=SimpleNamespace(object=obj),
+        data=_StripeObj(object=obj),
     )
 
 
@@ -72,17 +83,20 @@ def _make_stripe_sub(
     cancel_at_period_end: bool = False,
     sub_id: str = "sub_test_123",
     customer: str = "cus_test_123",
-) -> SimpleNamespace:
+) -> _StripeObj:
     """Create a fake Stripe Subscription object."""
-    return SimpleNamespace(
+    # Stripe API 2025-08-27 (basil): current_period_start/end moved to item level
+    return _StripeObj(
         id=sub_id,
         customer=customer,
         status=status,
-        current_period_start=period_start,
-        current_period_end=period_end,
         cancel_at_period_end=cancel_at_period_end,
-        items=SimpleNamespace(
-            data=[SimpleNamespace(price=SimpleNamespace(id=price_id))]
+        items=_StripeObj(
+            data=[_StripeObj(
+                price=_StripeObj(id=price_id),
+                current_period_start=period_start,
+                current_period_end=period_end,
+            )]
         ),
     )
 
@@ -113,13 +127,13 @@ class TestHelpers:
 
     def test_get_price_id_empty_items(self):
         """Return None if no items."""
-        fake_sub = SimpleNamespace(items=SimpleNamespace(data=[]))
+        fake_sub = _StripeObj(items=_StripeObj(data=[]))
         result = _get_price_id_from_subscription(fake_sub)
         assert result is None
 
     def test_get_price_id_no_items(self):
         """Return None if items is None."""
-        fake_sub = SimpleNamespace(items=None)
+        fake_sub = _StripeObj(items=None)
         result = _get_price_id_from_subscription(fake_sub)
         assert result is None
 
@@ -296,8 +310,8 @@ class TestHandleSubscriptionUpdated:
             "current_period_start": 1706745600,
             "current_period_end": 1709251200,
             "cancel_at_period_end": False,
-            "items": SimpleNamespace(
-                data=[SimpleNamespace(price=SimpleNamespace(id="price_test_business"))]
+            "items": _StripeObj(
+                data=[_StripeObj(price=_StripeObj(id="price_test_business"))]
             ),
         })
 
@@ -327,8 +341,8 @@ class TestHandleSubscriptionUpdated:
             "current_period_start": 1706745600,
             "current_period_end": 1709251200,
             "cancel_at_period_end": False,
-            "items": SimpleNamespace(
-                data=[SimpleNamespace(price=SimpleNamespace(id="price_test_pro"))]
+            "items": _StripeObj(
+                data=[_StripeObj(price=_StripeObj(id="price_test_pro"))]
             ),
         })
 
@@ -352,8 +366,8 @@ class TestHandleSubscriptionUpdated:
             "current_period_start": 1706745600,
             "current_period_end": 1709251200,
             "cancel_at_period_end": False,
-            "items": SimpleNamespace(
-                data=[SimpleNamespace(price=SimpleNamespace(id="price_test_pro"))]
+            "items": _StripeObj(
+                data=[_StripeObj(price=_StripeObj(id="price_test_pro"))]
             ),
         })
         # Should not raise

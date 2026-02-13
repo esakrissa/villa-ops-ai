@@ -132,6 +132,36 @@ async def auth_headers(test_user: User) -> dict[str, str]:
     return {"Authorization": f"Bearer {tokens['access_token']}"}
 
 
+@pytest_asyncio.fixture
+async def test_free_user(db_session: AsyncSession) -> User:
+    """Create and return a free-plan test user."""
+    unique = uuid.uuid4().hex[:8]
+    user = User(
+        email=f"freeuser-{unique}@test.com",
+        hashed_password=hash_password("testpass123"),
+        name="Free User",
+        auth_provider="local",
+        is_active=True,
+        role="manager",
+    )
+    db_session.add(user)
+    await db_session.flush()
+
+    subscription = Subscription(user_id=user.id, plan="free", status="active")
+    db_session.add(subscription)
+    await db_session.flush()
+    await db_session.refresh(user)
+
+    return user
+
+
+@pytest_asyncio.fixture
+async def free_auth_headers(test_free_user: User) -> dict[str, str]:
+    """Return Authorization headers for the free-plan test user."""
+    tokens = create_token_pair(str(test_free_user.id))
+    return {"Authorization": f"Bearer {tokens['access_token']}"}
+
+
 # ---------------------------------------------------------------------------
 # Convenience fixtures: property, guest, booking helpers
 # ---------------------------------------------------------------------------

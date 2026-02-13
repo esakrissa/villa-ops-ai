@@ -104,6 +104,23 @@ ignore_missing_imports = true
 [tool.hatch.build.targets.wheel]
 packages = ["app"]
 
+[tool.coverage.run]
+source = ["app"]
+omit = [
+    "app/agent/test_agent.py",
+    "app/mcp/test_mcp_client.py",
+    "app/billing/scripts/*",
+    "app/mcp/server.py",
+]
+concurrency = ["greenlet"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__",
+    "if TYPE_CHECKING",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
