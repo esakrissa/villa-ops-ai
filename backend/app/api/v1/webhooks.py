@@ -39,18 +39,18 @@ async def stripe_webhook(request: Request) -> dict[str, str]:
     # 2. Verify signature
     try:
         event = construct_webhook_event(payload, sig_header)
-    except stripe.SignatureVerificationError:
+    except stripe.SignatureVerificationError as e:
         logger.warning("Webhook signature verification failed")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid signature",
-        )
-    except ValueError:
+        ) from e
+    except ValueError as e:
         logger.warning("Invalid webhook payload")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid payload",
-        )
+        ) from e
 
     # 3. Dispatch to handler
     handler = EVENT_HANDLERS.get(event.type)
@@ -65,12 +65,12 @@ async def stripe_webhook(request: Request) -> dict[str, str]:
         try:
             await handler(db, event)
             await db.commit()
-        except Exception:
+        except Exception as e:
             await db.rollback()
             logger.exception("Error processing webhook event %s", event.id)
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Webhook processing failed",
-            )
+            ) from e
 
     return {"status": "processed"}

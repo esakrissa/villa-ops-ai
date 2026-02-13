@@ -1,7 +1,7 @@
 """Plan gating dependencies — enforce usage limits based on subscription plan."""
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import Depends, HTTPException, status
 from sqlalchemy import func, select
@@ -23,7 +23,7 @@ def _get_period_start(subscription) -> datetime:
     if subscription.current_period_start is not None:
         return subscription.current_period_start
     # Free plan: use first day of current month
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     return datetime(now.year, now.month, 1)  # naive UTC
 
 

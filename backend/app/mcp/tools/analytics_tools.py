@@ -9,7 +9,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from app.mcp import mcp, get_session_factory
+from app.mcp import get_session_factory, mcp
 from app.models.booking import Booking
 from app.models.property import Property
 

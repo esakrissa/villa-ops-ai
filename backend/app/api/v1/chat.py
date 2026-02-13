@@ -106,7 +106,7 @@ async def chat(
                         break
 
                     if mode == "messages":
-                        msg_chunk, metadata = chunk
+                        msg_chunk, _metadata = chunk
 
                         # Stream text tokens to client
                         if isinstance(msg_chunk, AIMessageChunk) and msg_chunk.content:
@@ -129,7 +129,7 @@ async def chat(
                         # "updates" emits {node_name: {key: value}} after each node.
                         # Collect complete messages for persistence and stream
                         # tool results and final AI text to the client.
-                        for node_name, node_output in chunk.items():
+                        for _node_name, node_output in chunk.items():
                             node_msgs = node_output.get("messages", [])
                             for msg in node_msgs:
                                 new_messages.append(msg)

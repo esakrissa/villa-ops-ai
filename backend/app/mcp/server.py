@@ -12,11 +12,11 @@ import contextlib
 import logging
 import os
 
+import uvicorn
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
 from starlette.routing import Mount, Route
-import uvicorn
 
 from app.mcp import mcp, set_session_factory
 
@@ -40,11 +40,11 @@ set_session_factory(mcp_session_factory)
 # ---------------------------------------------------------------------------
 # Import tool modules — triggers @mcp.tool() registration
 # ---------------------------------------------------------------------------
-import app.mcp.tools.booking_tools  # noqa: F401, E402
-import app.mcp.tools.guest_tools  # noqa: F401, E402
-import app.mcp.tools.property_tools  # noqa: F401, E402
-import app.mcp.tools.analytics_tools  # noqa: F401, E402
-import app.mcp.tools.notification_tools  # noqa: F401, E402
+import app.mcp.tools.analytics_tools  # noqa: E402
+import app.mcp.tools.booking_tools  # noqa: E402
+import app.mcp.tools.guest_tools  # noqa: E402
+import app.mcp.tools.notification_tools  # noqa: E402
+import app.mcp.tools.property_tools  # noqa: E402
 
 
 # ---------------------------------------------------------------------------

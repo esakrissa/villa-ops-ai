@@ -21,8 +21,8 @@ from app.models.user import User
 from app.schemas.billing import (
     CheckoutRequest,
     CheckoutResponse,
-    PlansListResponse,
     PlanResponse,
+    PlansListResponse,
     PortalRequest,
     PortalResponse,
     SubscriptionResponse,
@@ -159,7 +159,7 @@ async def create_checkout(
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=str(e),
-        )
+        ) from e
 
     await db.commit()
 
@@ -196,6 +196,6 @@ async def create_portal(
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=str(e),
-        )
+        ) from e
 
     return PortalResponse(portal_url=session.url)

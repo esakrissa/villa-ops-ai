@@ -1,8 +1,8 @@
 """JWT token creation and verification for access and refresh tokens."""
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
-from jose import JWTError, jwt
+from jose import jwt
 
 from app.config import settings
 
@@ -19,7 +19,7 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
         Encoded JWT string.
     """
     to_encode = data.copy()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     expire = now + (expires_delta or timedelta(minutes=settings.jwt_access_token_expire_minutes))
     to_encode.update({"exp": expire, "iat": now, "type": "access"})
     return jwt.encode(to_encode, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
@@ -37,7 +37,7 @@ def create_refresh_token(data: dict, expires_delta: timedelta | None = None) -> 
         Encoded JWT string.
     """
     to_encode = data.copy()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     expire = now + (expires_delta or timedelta(days=settings.jwt_refresh_token_expire_days))
     to_encode.update({"exp": expire, "iat": now, "type": "refresh"})
     return jwt.encode(to_encode, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)

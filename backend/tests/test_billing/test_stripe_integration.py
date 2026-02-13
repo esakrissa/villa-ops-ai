@@ -16,10 +16,13 @@ from app.billing.stripe_client import (
     get_subscription,
 )
 
-SKIP_REASON = "STRIPE_SECRET_KEY not set — skipping real Stripe integration tests"
+_stripe_key = os.getenv("STRIPE_SECRET_KEY", "")
+_has_real_key = _stripe_key.startswith("sk_test_") and len(_stripe_key) > 20
+
+SKIP_REASON = "STRIPE_SECRET_KEY not set or is a fake CI value — skipping real Stripe integration tests"
 pytestmark = [
     pytest.mark.asyncio,
-    pytest.mark.skipif(not os.getenv("STRIPE_SECRET_KEY"), reason=SKIP_REASON),
+    pytest.mark.skipif(not _has_real_key, reason=SKIP_REASON),
 ]
 
 

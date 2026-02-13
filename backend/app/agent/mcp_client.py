@@ -4,7 +4,6 @@ Connects to the MCP server via Streamable HTTP, discovers tools dynamically,
 and wraps each MCP tool as a LangChain StructuredTool for use in LangGraph.
 """
 
-import json
 import logging
 from typing import Any
 
@@ -48,17 +47,15 @@ async def _call_mcp_tool(mcp_url: str, tool_name: str, **kwargs: Any) -> str:
     """Call an MCP tool via a fresh Streamable HTTP connection."""
     # Filter out None values — MCP tools treat missing params as unset
     args = {k: v for k, v in kwargs.items() if v is not None}
-    async with streamable_http_client(mcp_url) as (read, write, _):
-        async with ClientSession(read, write) as session:
-            await session.initialize()
-            result = await session.call_tool(tool_name, args)
-            return result.content[0].text
+    async with streamable_http_client(mcp_url) as (read, write, _), ClientSession(read, write) as session:
+        await session.initialize()
+        result = await session.call_tool(tool_name, args)
+        return result.content[0].text
 
 
 async def load_mcp_tools(mcp_url: str) -> list[StructuredTool]:
     """Connect to MCP server, discover tools, and return LangChain-compatible tools."""
-    async with streamable_http_client(mcp_url) as (read, write, _):
-        async with ClientSession(read, write) as session:
+    async with streamable_http_client(mcp_url) as (read, write, _), ClientSession(read, write) as session:
             await session.initialize()
             tools_response = await session.list_tools()
 

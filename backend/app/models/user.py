@@ -1,12 +1,19 @@
 """User model — authentication and profile."""
 
-import uuid
-from datetime import datetime
+from __future__ import annotations
 
-from sqlalchemy import Boolean, String, func
+from typing import TYPE_CHECKING
+
+from sqlalchemy import Boolean, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base, TimestampMixin, UUIDPrimaryKeyMixin
+
+if TYPE_CHECKING:
+    from app.models.conversation import Conversation
+    from app.models.llm_usage import LLMUsage
+    from app.models.property import Property
+    from app.models.subscription import Subscription
 
 
 class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
@@ -24,12 +31,12 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     role: Mapped[str] = mapped_column(String(50), default="manager", nullable=False)
 
     # Relationships
-    subscription: Mapped["Subscription | None"] = relationship(
+    subscription: Mapped[Subscription | None] = relationship(
         "Subscription", back_populates="user", uselist=False, lazy="selectin"
     )
-    properties: Mapped[list["Property"]] = relationship("Property", back_populates="owner", lazy="selectin")
-    conversations: Mapped[list["Conversation"]] = relationship("Conversation", back_populates="user", lazy="selectin")
-    llm_usages: Mapped[list["LLMUsage"]] = relationship("LLMUsage", back_populates="user", lazy="selectin")
+    properties: Mapped[list[Property]] = relationship("Property", back_populates="owner", lazy="selectin")
+    conversations: Mapped[list[Conversation]] = relationship("Conversation", back_populates="user", lazy="selectin")
+    llm_usages: Mapped[list[LLMUsage]] = relationship("LLMUsage", back_populates="user", lazy="selectin")
 
     def __repr__(self) -> str:
         return f"<User id={self.id} email={self.email!r} role={self.role!r}>"

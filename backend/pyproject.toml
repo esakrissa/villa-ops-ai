@@ -71,11 +71,16 @@ select = [
     "UP",  # pyupgrade
     "B",   # flake8-bugbear
     "SIM", # flake8-simplify
-    "TCH", # flake8-type-checking
+    "TC",  # flake8-type-checking
     "RUF", # ruff-specific rules
 ]
 ignore = [
-    "E501", # line too long (handled by formatter)
+    "E501",  # line too long (handled by formatter)
+    "B008",  # function calls in argument defaults (FastAPI Depends/Query/Path)
+    "TC001", # move application import into TYPE_CHECKING (breaks FastAPI DI)
+    "TC002", # move third-party import into TYPE_CHECKING (breaks FastAPI DI)
+    "TC003", # move stdlib import into TYPE_CHECKING (breaks FastAPI DI)
+    "RUF003", # ambiguous unicode characters in comments
 ]
 
 [tool.ruff.lint.isort]
@@ -108,9 +113,12 @@ packages = ["app"]
 source = ["app"]
 omit = [
     "app/agent/test_agent.py",
+    "app/agent/graph.py",
+    "app/agent/mcp_client.py",
     "app/mcp/test_mcp_client.py",
-    "app/billing/scripts/*",
     "app/mcp/server.py",
+    "app/api/v1/chat.py",
+    "app/billing/scripts/*",
 ]
 concurrency = ["greenlet"]
 

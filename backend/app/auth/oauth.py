@@ -46,7 +46,7 @@ async def get_google_user_info(token: dict) -> dict:
     }
 
 
-async def get_github_user_info(client, token: dict) -> dict:  # noqa: ARG001 — token kept for API symmetry
+async def get_github_user_info(client, token: dict) -> dict:
     """Fetch standardized user info from the GitHub API.
 
     GitHub doesn't guarantee the email in the base ``/user`` response (users

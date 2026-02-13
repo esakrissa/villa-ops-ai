@@ -52,9 +52,8 @@ class BookingUpdate(BaseModel):
     @model_validator(mode="after")
     def check_dates(self) -> "BookingUpdate":
         """If both dates are provided, validate check_out > check_in."""
-        if self.check_in is not None and self.check_out is not None:
-            if self.check_out <= self.check_in:
-                raise ValueError("check_out must be after check_in")
+        if self.check_in is not None and self.check_out is not None and self.check_out <= self.check_in:
+            raise ValueError("check_out must be after check_in")
         return self
 
 
