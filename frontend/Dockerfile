@@ -53,4 +53,7 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
     CMD wget -q --spider http://localhost:3000 || exit 1
 
-CMD ["node", "server.js"]
+# Force HOSTNAME=0.0.0.0 at runtime so Next.js binds to all interfaces.
+# ECS Fargate overrides the ENV HOSTNAME with the container's internal hostname,
+# which causes Next.js to bind to a specific IP (breaking localhost health checks).
+CMD ["sh", "-c", "HOSTNAME=0.0.0.0 exec node server.js"]
