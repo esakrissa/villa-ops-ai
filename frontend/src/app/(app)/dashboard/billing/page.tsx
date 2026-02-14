@@ -7,6 +7,7 @@ import { useSubscription } from "@/lib/hooks/useSubscription";
 import { apiFetch } from "@/lib/api";
 import { PlanBadge } from "@/components/billing/PlanBadge";
 import { UsageMeter } from "@/components/billing/UsageMeter";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 
 function formatBillingDate(isoDate: string): string {
   return new Date(isoDate).toLocaleDateString("en-US", {
@@ -29,6 +30,7 @@ export default function BillingPage() {
   const { subscription, loading, error, refetch } = useSubscription();
   const [portalLoading, setPortalLoading] = useState(false);
   const [upgradeLoading, setUpgradeLoading] = useState<string | null>(null);
+  const [confirmPlan, setConfirmPlan] = useState<string | null>(null);
 
   async function handlePortal() {
     setPortalLoading(true);
@@ -52,15 +54,32 @@ export default function BillingPage() {
     }
   }
 
-  async function handleUpgrade(planName: string) {
+  function handleUpgrade(planName: string) {
+    const isPaidUser =
+      subscription?.stripe_subscription_id &&
+      subscription?.status === "active" &&
+      subscription?.plan.name !== "free";
+
+    if (isPaidUser) {
+      setConfirmPlan(planName);
+      return;
+    }
+
+    doUpgrade(planName);
+  }
+
+  async function doUpgrade(planName: string) {
+    const upgrade = upgradeOptions[subscription?.plan.name ?? ""]?.find(
+      (u) => u.name === planName,
+    );
+    const isPaidUser =
+      subscription?.stripe_subscription_id &&
+      subscription?.status === "active" &&
+      subscription?.plan.name !== "free";
+
     setUpgradeLoading(planName);
     try {
-      // Paid users: upgrade in-place via /upgrade endpoint (Stripe Subscription.modify)
-      if (
-        subscription?.stripe_subscription_id &&
-        subscription?.status === "active" &&
-        subscription?.plan.name !== "free"
-      ) {
+      if (isPaidUser) {
         await apiFetch<{ plan: string; status: string }>(
           "/api/v1/billing/upgrade",
           {
@@ -68,7 +87,7 @@ export default function BillingPage() {
             body: JSON.stringify({ plan: planName }),
           },
         );
-        toast.success(`Successfully upgraded to ${planName}!`);
+        toast.success(`Successfully upgraded to ${upgrade?.display ?? planName}!`);
         refetch();
         return;
       }
@@ -150,8 +169,25 @@ export default function BillingPage() {
     ...(plan.has_notifications ? ["Email notifications"] : []),
   ];
 
+  const confirmUpgrade = confirmPlan
+    ? upgradeOptions[plan.name]?.find((u) => u.name === confirmPlan)
+    : null;
+
   return (
     <div className="space-y-6">
+      <ConfirmModal
+        open={!!confirmPlan}
+        title={`Upgrade to ${confirmUpgrade?.display ?? ""}`}
+        description={`Your plan will change to ${confirmUpgrade?.display ?? ""} at ${confirmUpgrade?.price ?? ""}. The prorated difference will be charged to your payment method immediately.`}
+        confirmLabel="Upgrade now"
+        cancelLabel="Cancel"
+        onConfirm={() => {
+          const p = confirmPlan!;
+          setConfirmPlan(null);
+          doUpgrade(p);
+        }}
+        onCancel={() => setConfirmPlan(null)}
+      />
       {/* Header */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex-1">
