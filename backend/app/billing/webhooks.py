@@ -7,7 +7,7 @@ import stripe
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.billing.plans import get_plan_by_price_id
-from app.billing.stripe_client import get_subscription
+from app.billing.stripe_client import cancel_subscription, get_subscription
 from app.services.subscription_service import (
     downgrade_to_free,
     get_subscription_by_stripe_customer,
@@ -76,6 +76,19 @@ async def handle_checkout_session_completed(
             session.id,
         )
         return
+
+    # Safety net: cancel old Stripe subscription if user somehow got a second one
+    if subscription.stripe_subscription_id and subscription.stripe_subscription_id != subscription_id:
+        old_sub_id = subscription.stripe_subscription_id
+        try:
+            await cancel_subscription(old_sub_id)
+            logger.warning(
+                "Cancelled old subscription %s (replaced by %s via checkout)",
+                old_sub_id,
+                subscription_id,
+            )
+        except stripe.StripeError as e:
+            logger.error("Failed to cancel old subscription %s: %s", old_sub_id, e)
 
     # Fetch full subscription from Stripe to get price and period info
     stripe_sub = await get_subscription(subscription_id)

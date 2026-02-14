@@ -55,6 +55,25 @@ export default function BillingPage() {
   async function handleUpgrade(planName: string) {
     setUpgradeLoading(planName);
     try {
+      // Paid users: upgrade in-place via /upgrade endpoint (Stripe Subscription.modify)
+      if (
+        subscription?.stripe_subscription_id &&
+        subscription?.status === "active" &&
+        subscription?.plan.name !== "free"
+      ) {
+        await apiFetch<{ plan: string; status: string }>(
+          "/api/v1/billing/upgrade",
+          {
+            method: "POST",
+            body: JSON.stringify({ plan: planName }),
+          },
+        );
+        toast.success(`Successfully upgraded to ${planName}!`);
+        refetch();
+        return;
+      }
+
+      // Free users: create a new checkout session
       const data = await apiFetch<{ checkout_url: string }>(
         "/api/v1/billing/checkout",
         {
@@ -68,7 +87,7 @@ export default function BillingPage() {
       );
       window.location.href = data.checkout_url;
     } catch {
-      toast.error("Failed to start checkout. Please try again.");
+      toast.error("Failed to upgrade plan. Please try again.");
     } finally {
       setUpgradeLoading(null);
     }
@@ -300,16 +319,16 @@ export default function BillingPage() {
           )}
 
           {upgrades.map((upgrade) => (
-            <button
-              key={upgrade.name}
-              onClick={() => handleUpgrade(upgrade.name)}
-              disabled={upgradeLoading === upgrade.name}
-              className="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {upgradeLoading === upgrade.name
-                ? "Redirecting..."
-                : `Upgrade to ${upgrade.display} (${upgrade.price})`}
-            </button>
+              <button
+                key={upgrade.name}
+                onClick={() => handleUpgrade(upgrade.name)}
+                disabled={upgradeLoading === upgrade.name}
+                className="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {upgradeLoading === upgrade.name
+                  ? "Upgrading..."
+                  : `Upgrade to ${upgrade.display} (${upgrade.price})`}
+              </button>
           ))}
 
           <Link

@@ -1,7 +1,10 @@
 """MCP-to-LangChain tool bridge.
 
-Connects to the MCP server via Streamable HTTP, discovers tools dynamically,
-and wraps each MCP tool as a LangChain StructuredTool for use in LangGraph.
+Connects to one or more MCP servers via Streamable HTTP, discovers tools
+dynamically, and wraps each MCP tool as a LangChain StructuredTool for use
+in LangGraph. Supports multiple MCP URLs with non-fatal failure — if an
+external MCP server (e.g. Exa) is unreachable, the agent continues with
+the tools that loaded successfully.
 """
 
 import logging
@@ -53,8 +56,8 @@ async def _call_mcp_tool(mcp_url: str, tool_name: str, **kwargs: Any) -> str:
         return result.content[0].text
 
 
-async def load_mcp_tools(mcp_url: str) -> list[StructuredTool]:
-    """Connect to MCP server, discover tools, and return LangChain-compatible tools."""
+async def _load_tools_from_url(mcp_url: str) -> list[StructuredTool]:
+    """Load tools from a single MCP server URL."""
     async with streamable_http_client(mcp_url) as (read, write, _), ClientSession(read, write) as session:
             await session.initialize()
             tools_response = await session.list_tools()
@@ -75,5 +78,29 @@ async def load_mcp_tools(mcp_url: str) -> list[StructuredTool]:
         )
         langchain_tools.append(lc_tool)
 
-    logger.info(f"Loaded {len(langchain_tools)} MCP tools: {[t.name for t in langchain_tools]}")
     return langchain_tools
+
+
+async def load_mcp_tools(mcp_urls: list[str] | str) -> list[StructuredTool]:
+    """Connect to MCP server(s), discover tools, and return LangChain-compatible tools.
+
+    Args:
+        mcp_urls: A single MCP URL string or a list of MCP URLs.
+                  Each URL is tried independently — if one fails, the others
+                  still load (non-fatal for external services like Exa).
+    """
+    if isinstance(mcp_urls, str):
+        mcp_urls = [mcp_urls]
+
+    all_tools: list[StructuredTool] = []
+
+    for url in mcp_urls:
+        try:
+            tools = await _load_tools_from_url(url)
+            all_tools.extend(tools)
+            logger.info("Loaded %d tools from %s: %s", len(tools), url, [t.name for t in tools])
+        except Exception:
+            logger.warning("Failed to load MCP tools from %s — skipping", url, exc_info=True)
+
+    logger.info("Total MCP tools loaded: %d", len(all_tools))
+    return all_tools

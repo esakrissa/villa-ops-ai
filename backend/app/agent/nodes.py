@@ -1,6 +1,7 @@
 """Agent reasoning and routing nodes for the LangGraph graph."""
 
 import logging
+from datetime import datetime, timedelta, timezone
 from typing import Literal
 
 from langchain_core.messages import SystemMessage, ToolMessage
@@ -13,6 +14,9 @@ from app.agent.state import AgentState
 
 logger = logging.getLogger(__name__)
 
+# Bali / WITA timezone (UTC+8)
+BALI_TZ = timezone(timedelta(hours=8))
+
 
 def create_agent_node(llm: ChatLiteLLM, tools: list):
     """Create the agent node function with tools bound to the LLM."""
@@ -21,7 +25,17 @@ def create_agent_node(llm: ChatLiteLLM, tools: list):
     async def agent_node(state: AgentState) -> dict:
         """Call the LLM with conversation history and available tools."""
         user_id = state.get("user_id", "")
-        system_content = SYSTEM_PROMPT
+
+        # Inject current Bali time into system prompt
+        now_bali = datetime.now(BALI_TZ)
+        time_context = (
+            f"\n\n## Current Time\n"
+            f"Current date and time in Bali (WITA, UTC+8): "
+            f"{now_bali.strftime('%A, %B %d, %Y at %H:%M')}.\n"
+            f"Use this as the reference for 'today', 'tomorrow', 'this week', etc."
+        )
+        system_content = SYSTEM_PROMPT + time_context
+
         if user_id:
             system_content += (
                 f"\n\nIMPORTANT: The current user's ID is '{user_id}'. "

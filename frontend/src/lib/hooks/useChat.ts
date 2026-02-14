@@ -176,10 +176,20 @@ export function useChat(): UseChatReturn {
                       const updated = [...prev];
                       const last = updated[updated.length - 1];
                       if (last && last.role === "assistant") {
-                        updated[updated.length - 1] = {
-                          ...last,
-                          content: last.content + event.content,
-                        };
+                        // If this message has tool calls, start a new bubble for the text response
+                        if (last.toolCalls && last.toolCalls.length > 0) {
+                          updated.push({
+                            id: generateId(),
+                            role: "assistant",
+                            content: event.content,
+                            isStreaming: true,
+                          });
+                        } else {
+                          updated[updated.length - 1] = {
+                            ...last,
+                            content: last.content + event.content,
+                          };
+                        }
                       }
                       return updated;
                     });
@@ -190,22 +200,34 @@ export function useChat(): UseChatReturn {
                       const updated = [...prev];
                       const last = updated[updated.length - 1];
                       if (last && last.role === "assistant") {
-                        // Deduplicate: skip if same tool call already exists
-                        const existing = last.toolCalls || [];
-                        const isDupe = existing.some(
-                          (tc) =>
-                            tc.name === event.name &&
-                            JSON.stringify(tc.args) ===
-                              JSON.stringify(event.args),
-                        );
-                        if (!isDupe) {
-                          updated[updated.length - 1] = {
-                            ...last,
-                            toolCalls: [
-                              ...existing,
-                              { name: event.name, args: event.args },
-                            ],
-                          };
+                        // If previous round had results, start a new tool bubble
+                        if (last.toolResults && last.toolResults.length > 0) {
+                          updated.push({
+                            id: generateId(),
+                            role: "assistant",
+                            content: "",
+                            toolCalls: [{ name: event.name, args: event.args }],
+                            toolResults: [],
+                            isStreaming: true,
+                          });
+                        } else {
+                          // Deduplicate: skip if same tool call already exists
+                          const existing = last.toolCalls || [];
+                          const isDupe = existing.some(
+                            (tc) =>
+                              tc.name === event.name &&
+                              JSON.stringify(tc.args) ===
+                                JSON.stringify(event.args),
+                          );
+                          if (!isDupe) {
+                            updated[updated.length - 1] = {
+                              ...last,
+                              toolCalls: [
+                                ...existing,
+                                { name: event.name, args: event.args },
+                              ],
+                            };
+                          }
                         }
                       }
                       return updated;
@@ -215,12 +237,15 @@ export function useChat(): UseChatReturn {
                   case "tool_result":
                     setMessages((prev) => {
                       const updated = [...prev];
-                      const last = updated[updated.length - 1];
-                      if (last && last.role === "assistant") {
-                        updated[updated.length - 1] = {
-                          ...last,
+                      // Find the last assistant message that has tool calls (may not be the very last msg)
+                      const idx = updated.findLastIndex(
+                        (m) => m.role === "assistant" && m.toolCalls && m.toolCalls.length > 0,
+                      );
+                      if (idx !== -1) {
+                        updated[idx] = {
+                          ...updated[idx],
                           toolResults: [
-                            ...(last.toolResults || []),
+                            ...(updated[idx].toolResults || []),
                             { name: event.name, result: event.result },
                           ],
                         };
@@ -231,17 +256,13 @@ export function useChat(): UseChatReturn {
 
                   case "done":
                     setConversationId(event.conversation_id);
-                    setMessages((prev) => {
-                      const updated = [...prev];
-                      const last = updated[updated.length - 1];
-                      if (last && last.role === "assistant") {
-                        updated[updated.length - 1] = {
-                          ...last,
-                          isStreaming: false,
-                        };
-                      }
-                      return updated;
-                    });
+                    setMessages((prev) =>
+                      prev.map((m) =>
+                        m.role === "assistant" && m.isStreaming
+                          ? { ...m, isStreaming: false }
+                          : m,
+                      ),
+                    );
                     break;
 
                   case "confirmation":
@@ -261,17 +282,13 @@ export function useChat(): UseChatReturn {
 
                   case "interrupted":
                     setConversationId(event.conversation_id);
-                    setMessages((prev) => {
-                      const updated = [...prev];
-                      const last = updated[updated.length - 1];
-                      if (last && last.role === "assistant") {
-                        updated[updated.length - 1] = {
-                          ...last,
-                          isStreaming: false,
-                        };
-                      }
-                      return updated;
-                    });
+                    setMessages((prev) =>
+                      prev.map((m) =>
+                        m.role === "assistant" && m.isStreaming
+                          ? { ...m, isStreaming: false }
+                          : m,
+                      ),
+                    );
                     break;
 
                   case "error":
@@ -404,10 +421,19 @@ export function useChat(): UseChatReturn {
                       const updated = [...prev];
                       const last = updated[updated.length - 1];
                       if (last && last.role === "assistant") {
-                        updated[updated.length - 1] = {
-                          ...last,
-                          content: last.content + event.content,
-                        };
+                        if (last.toolCalls && last.toolCalls.length > 0) {
+                          updated.push({
+                            id: generateId(),
+                            role: "assistant",
+                            content: event.content,
+                            isStreaming: true,
+                          });
+                        } else {
+                          updated[updated.length - 1] = {
+                            ...last,
+                            content: last.content + event.content,
+                          };
+                        }
                       }
                       return updated;
                     });
@@ -418,21 +444,32 @@ export function useChat(): UseChatReturn {
                       const updated = [...prev];
                       const last = updated[updated.length - 1];
                       if (last && last.role === "assistant") {
-                        const existing = last.toolCalls || [];
-                        const isDupe = existing.some(
-                          (tc) =>
-                            tc.name === event.name &&
-                            JSON.stringify(tc.args) ===
-                              JSON.stringify(event.args),
-                        );
-                        if (!isDupe) {
-                          updated[updated.length - 1] = {
-                            ...last,
-                            toolCalls: [
-                              ...existing,
-                              { name: event.name, args: event.args },
-                            ],
-                          };
+                        if (last.toolResults && last.toolResults.length > 0) {
+                          updated.push({
+                            id: generateId(),
+                            role: "assistant",
+                            content: "",
+                            toolCalls: [{ name: event.name, args: event.args }],
+                            toolResults: [],
+                            isStreaming: true,
+                          });
+                        } else {
+                          const existing = last.toolCalls || [];
+                          const isDupe = existing.some(
+                            (tc) =>
+                              tc.name === event.name &&
+                              JSON.stringify(tc.args) ===
+                                JSON.stringify(event.args),
+                          );
+                          if (!isDupe) {
+                            updated[updated.length - 1] = {
+                              ...last,
+                              toolCalls: [
+                                ...existing,
+                                { name: event.name, args: event.args },
+                              ],
+                            };
+                          }
                         }
                       }
                       return updated;
@@ -442,12 +479,14 @@ export function useChat(): UseChatReturn {
                   case "tool_result":
                     setMessages((prev) => {
                       const updated = [...prev];
-                      const last = updated[updated.length - 1];
-                      if (last && last.role === "assistant") {
-                        updated[updated.length - 1] = {
-                          ...last,
+                      const idx = updated.findLastIndex(
+                        (m) => m.role === "assistant" && m.toolCalls && m.toolCalls.length > 0,
+                      );
+                      if (idx !== -1) {
+                        updated[idx] = {
+                          ...updated[idx],
                           toolResults: [
-                            ...(last.toolResults || []),
+                            ...(updated[idx].toolResults || []),
                             { name: event.name, result: event.result },
                           ],
                         };
@@ -457,17 +496,13 @@ export function useChat(): UseChatReturn {
                     break;
 
                   case "done":
-                    setMessages((prev) => {
-                      const updated = [...prev];
-                      const last = updated[updated.length - 1];
-                      if (last && last.role === "assistant") {
-                        updated[updated.length - 1] = {
-                          ...last,
-                          isStreaming: false,
-                        };
-                      }
-                      return updated;
-                    });
+                    setMessages((prev) =>
+                      prev.map((m) =>
+                        m.role === "assistant" && m.isStreaming
+                          ? { ...m, isStreaming: false }
+                          : m,
+                      ),
+                    );
                     break;
 
                   case "error":

@@ -105,6 +105,13 @@ export default function PricingPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const currentPlanName = subscription?.plan.name;
+  const hasActivePaidPlan =
+    authed &&
+    currentPlanName != null &&
+    currentPlanName !== "free" &&
+    subscription?.status === "active";
+
   async function handleSelectPlan(planName: string) {
     if (planName === "free") {
       window.location.href = "/register";
@@ -112,6 +119,27 @@ export default function PricingPage() {
     }
     if (!authed) {
       window.location.href = "/register";
+      return;
+    }
+
+    // Paid users: upgrade in-place via /upgrade endpoint (Stripe Subscription.modify)
+    if (hasActivePaidPlan) {
+      setCheckoutLoading(planName);
+      setError(null);
+      try {
+        await apiFetch<{ plan: string; status: string }>(
+          "/api/v1/billing/upgrade",
+          {
+            method: "POST",
+            body: JSON.stringify({ plan: planName }),
+          },
+        );
+        window.location.href = "/dashboard/billing";
+      } catch {
+        setError("Failed to upgrade plan. Please try again.");
+      } finally {
+        setCheckoutLoading(null);
+      }
       return;
     }
 
@@ -140,6 +168,7 @@ export default function PricingPage() {
   function getCtaLabel(planName: string): string {
     if (!authed) return planName === "free" ? "Get started" : "Sign up";
     if (subscription?.plan.name === planName) return "Current Plan";
+    if (hasActivePaidPlan) return "Upgrade";
     return planName === "free" ? "Get started" : "Upgrade";
   }
 

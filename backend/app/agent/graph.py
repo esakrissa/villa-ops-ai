@@ -48,11 +48,18 @@ async def create_agent(checkpointer=None):
     if settings.openai_api_key:
         os.environ["OPENAI_API_KEY"] = settings.openai_api_key
 
-    # MCP URL — docker-compose.yml overrides to http://mcp:8001/mcp inside Docker
-    mcp_url = settings.mcp_server_url
+    # Build list of MCP server URLs
+    # Primary: VillaOps MCP server (docker-compose overrides to http://mcp:8001/mcp)
+    mcp_urls = [settings.mcp_server_url]
 
-    # Load MCP tools as LangChain tools
-    tools = await load_mcp_tools(mcp_url)
+    # Optional: Exa hosted MCP server for web search
+    if settings.exa_api_key:
+        exa_url = f"https://mcp.exa.ai/mcp?exaApiKey={settings.exa_api_key}"
+        mcp_urls.append(exa_url)
+        logger.info("Exa MCP enabled for web search")
+
+    # Load MCP tools as LangChain tools (non-fatal per URL)
+    tools = await load_mcp_tools(mcp_urls)
     logger.info("Loaded %d MCP tools", len(tools))
 
     # Create LLM via LiteLLM (supports Gemini, Claude, GPT via unified API)

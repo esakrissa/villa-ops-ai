@@ -156,6 +156,7 @@ jobs:
           sed -i "s|__STRIPE_PRO_PRICE_ID__|${{ secrets.PROD_STRIPE_PRO_PRICE_ID }}|g" .aws/backend-task-def.json
           sed -i "s|__STRIPE_BUSINESS_PRICE_ID__|${{ secrets.PROD_STRIPE_BUSINESS_PRICE_ID }}|g" .aws/backend-task-def.json
           sed -i "s|__GEMINI_API_KEY__|${{ secrets.PROD_GEMINI_API_KEY }}|g" .aws/backend-task-def.json
+          sed -i "s|__EXA_API_KEY__|${{ secrets.PROD_EXA_API_KEY }}|g" .aws/backend-task-def.json
           sed -i "s|__GOOGLE_CLIENT_ID__|${{ secrets.PROD_GOOGLE_CLIENT_ID }}|g" .aws/backend-task-def.json
           sed -i "s|__GOOGLE_CLIENT_SECRET__|${{ secrets.PROD_GOOGLE_CLIENT_SECRET }}|g" .aws/backend-task-def.json
           sed -i "s|__GOOGLE_REDIRECT_URI__|https://villaops.esakrissa.com/api/v1/auth/google/callback|g" .aws/backend-task-def.json
@@ -164,7 +165,7 @@ jobs:
           sed -i "s|__GITHUB_REDIRECT_URI__|https://villaops.esakrissa.com/api/v1/auth/github/callback|g" .aws/backend-task-def.json
           sed -i "s|__FRONTEND_URL__|https://villaops.esakrissa.com|g" .aws/backend-task-def.json
 
-      # --- Deploy backend + MCP ---
+      # --- Run database migrations (before deploying new code) ---
 
       - name: Render backend task definition
         if: steps.changes.outputs.backend == 'true'
@@ -174,6 +175,52 @@ jobs:
           task-definition: .aws/backend-task-def.json
           container-name: villa-ops-backend
           image: ${{ steps.login-ecr.outputs.registry }}/villa-ops-backend:${{ steps.vars.outputs.image_tag }}
+
+      - name: Register migration task definition
+        if: steps.changes.outputs.backend == 'true'
+        id: register-migration
+        run: |
+          TASK_DEF=$(cat ${{ steps.render-backend.outputs.task-definition }})
+          RESULT=$(aws ecs register-task-definition --cli-input-json "$TASK_DEF")
+          TASK_DEF_ARN=$(echo "$RESULT" | jq -r '.taskDefinition.taskDefinitionArn')
+          echo "task_def_arn=$TASK_DEF_ARN" >> $GITHUB_OUTPUT
+          echo "Registered task definition: $TASK_DEF_ARN"
+
+      - name: Run database migrations
+        if: steps.changes.outputs.backend == 'true'
+        run: |
+          TASK_ARN=$(aws ecs run-task \
+            --cluster $ECS_CLUSTER \
+            --task-definition ${{ steps.register-migration.outputs.task_def_arn }} \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=[subnet-09c7adb3a7f791f02,subnet-070a7e0555c10ac30],securityGroups=[sg-095bd0159948bf0c2],assignPublicIp=ENABLED}" \
+            --overrides '{
+              "containerOverrides": [{
+                "name": "villa-ops-backend",
+                "command": ["alembic", "upgrade", "head"]
+              }]
+            }' \
+            --query "tasks[0].taskArn" --output text)
+
+          echo "Migration task: $TASK_ARN"
+          echo "Waiting for migration to complete..."
+
+          aws ecs wait tasks-stopped --cluster $ECS_CLUSTER --tasks "$TASK_ARN"
+
+          EXIT_CODE=$(aws ecs describe-tasks \
+            --cluster $ECS_CLUSTER --tasks "$TASK_ARN" \
+            --query "tasks[0].containers[0].exitCode" --output text)
+
+          echo "Migration exit code: $EXIT_CODE"
+          if [ "$EXIT_CODE" != "0" ]; then
+            echo "Migration failed! Fetching logs..."
+            TASK_ID=$(echo "$TASK_ARN" | awk -F'/' '{print $NF}')
+            aws logs tail /ecs/villa-ops-backend --since 5m --filter-pattern "alembic" || true
+            exit 1
+          fi
+          echo "Migration completed successfully"
+
+      # --- Deploy backend + MCP ---
 
       - name: Deploy backend to ECS
         if: steps.changes.outputs.backend == 'true'
