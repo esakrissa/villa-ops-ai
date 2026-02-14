@@ -160,9 +160,13 @@ async def booking_create(
 ) -> dict:
     """Create a new booking with availability validation.
 
+    IMPORTANT: property_id and guest_id must be UUIDs, not names.
+    - To get property_id: call property_list() or property_manage(action="check_availability")
+    - To get guest_id: call guest_lookup(name="...") or guest_create(name="...", email="...")
+
     Args:
-        property_id: UUID of the property
-        guest_id: UUID of the guest
+        property_id: UUID of the property (get from property_list or property_manage)
+        guest_id: UUID of the guest (get from guest_lookup or guest_create)
         check_in: Check-in date (YYYY-MM-DD)
         check_out: Check-out date (YYYY-MM-DD)
         num_guests: Number of guests (default 1)

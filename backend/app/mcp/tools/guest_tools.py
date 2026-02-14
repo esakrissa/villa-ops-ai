@@ -1,4 +1,4 @@
-"""Guest lookup MCP tool."""
+"""Guest MCP tools — lookup and create guests."""
 
 import logging
 import uuid as uuid_mod
@@ -107,3 +107,89 @@ async def guest_lookup(
     except Exception as e:
         logger.exception("guest_lookup failed")
         return {"error": str(e), "guests": [], "total": 0}
+
+
+@mcp.tool()
+async def guest_create(
+    name: str,
+    email: str,
+    phone: str | None = None,
+    nationality: str | None = None,
+    notes: str | None = None,
+    user_id: str | None = None,
+) -> dict:
+    """Create a new guest record.
+
+    Use this when a guest doesn't exist in the system and needs to be created
+    before a booking can be made. Call guest_lookup first to check if the guest
+    already exists.
+
+    Args:
+        name: Full name of the guest
+        email: Email address (must be unique across all guests)
+        phone: Phone number (optional)
+        nationality: Nationality (optional)
+        notes: Additional notes about the guest (optional)
+        user_id: UUID of the current user (for logging only)
+
+    Returns:
+        Dict with created guest details (including UUID) or error.
+    """
+    if not name or not name.strip():
+        return {"error": "Guest name is required.", "guest": None}
+    if not email or not email.strip():
+        return {"error": "Guest email is required.", "guest": None}
+
+    try:
+        session_factory = get_session_factory()
+        async with session_factory() as session:
+            # Check for existing guest with same email
+            result = await session.execute(
+                select(Guest).where(Guest.email.ilike(email.strip()))
+            )
+            existing = result.scalar_one_or_none()
+            if existing:
+                return {
+                    "guest": {
+                        "id": str(existing.id),
+                        "name": existing.name,
+                        "email": existing.email,
+                        "phone": existing.phone,
+                        "nationality": existing.nationality,
+                        "notes": existing.notes,
+                    },
+                    "already_existed": True,
+                    "message": f"Guest with email '{email}' already exists.",
+                }
+
+            guest = Guest(
+                name=name.strip(),
+                email=email.strip(),
+                phone=phone,
+                nationality=nationality,
+                notes=notes,
+            )
+            session.add(guest)
+            await session.flush()
+            await session.refresh(guest)
+            await session.commit()
+
+            logger.info(
+                "Guest created: %s <%s> (by user %s)",
+                guest.name, guest.email, user_id or "unknown",
+            )
+
+            return {
+                "guest": {
+                    "id": str(guest.id),
+                    "name": guest.name,
+                    "email": guest.email,
+                    "phone": guest.phone,
+                    "nationality": guest.nationality,
+                    "notes": guest.notes,
+                },
+                "already_existed": False,
+            }
+    except Exception as e:
+        logger.exception("guest_create failed")
+        return {"error": str(e), "guest": None}
