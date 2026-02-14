@@ -6,6 +6,7 @@ allowing the agent to persist and reload conversation history.
 
 import logging
 import uuid
+from datetime import datetime, timedelta
 
 from langchain_core.messages import AIMessage, AnyMessage, HumanMessage, ToolMessage
 from sqlalchemy import func, select
@@ -85,6 +86,59 @@ async def delete_conversation(
     return True
 
 
+def sanitize_message_history(messages: list[AnyMessage]) -> list[AnyMessage]:
+    """Remove orphaned ToolMessages that would cause Gemini API errors.
+
+    Gemini requires every ToolMessage to have a matching tool_call (by ID)
+    in the preceding AIMessage. If messages are reconstructed from DB and
+    the pairing is broken, this strips the orphaned ToolMessages and any
+    AIMessages that only contained tool_calls (now pointless without their
+    ToolMessage responses).
+    """
+    # Collect all tool_call IDs from AIMessages
+    valid_tool_call_ids: set[str] = set()
+    for msg in messages:
+        if isinstance(msg, AIMessage) and msg.tool_calls:
+            for tc in msg.tool_calls:
+                tc_id = tc.get("id", "")
+                if tc_id:
+                    valid_tool_call_ids.add(tc_id)
+
+    # First pass: keep only ToolMessages with a matching tool_call
+    sanitized: list[AnyMessage] = []
+    kept_tool_call_ids: set[str] = set()
+    for msg in messages:
+        if isinstance(msg, ToolMessage):
+            if msg.tool_call_id and msg.tool_call_id in valid_tool_call_ids:
+                sanitized.append(msg)
+                kept_tool_call_ids.add(msg.tool_call_id)
+            else:
+                logger.debug(
+                    "Dropping orphaned ToolMessage with tool_call_id=%s",
+                    msg.tool_call_id,
+                )
+        else:
+            sanitized.append(msg)
+
+    # Second pass: remove AIMessages that ONLY had tool_calls (no text content)
+    # if none of their tool_calls were kept (i.e., all ToolMessages were dropped)
+    final: list[AnyMessage] = []
+    for msg in sanitized:
+        if isinstance(msg, AIMessage) and msg.tool_calls and not msg.content:
+            msg_tc_ids = {tc.get("id", "") for tc in msg.tool_calls}
+            if not msg_tc_ids & kept_tool_call_ids:
+                logger.debug("Dropping AIMessage with orphaned tool_calls (no content)")
+                continue
+        final.append(msg)
+
+    if len(final) != len(messages):
+        logger.info(
+            "Sanitized message history: %d → %d messages",
+            len(messages), len(final),
+        )
+    return final
+
+
 async def load_conversation_messages(
     db: AsyncSession,
     conversation_id: uuid.UUID,
@@ -122,7 +176,7 @@ async def load_conversation_messages(
     logger.debug(
         "Loaded %d messages for conversation %s", len(langchain_messages), conversation_id
     )
-    return langchain_messages
+    return sanitize_message_history(langchain_messages)
 
 
 async def save_messages(
@@ -138,8 +192,15 @@ async def save_messages(
     - AIMessage -> role='assistant', store tool_calls if present
     - ToolMessage -> role='tool', store tool_results
     """
-    for msg in messages:
+    # Use explicit timestamps with microsecond offsets to preserve message
+    # order. PostgreSQL's now() returns the same value within a transaction,
+    # so all messages in a batch would get identical created_at and load back
+    # in arbitrary (UUID) order, scrambling the conversation history.
+    base_time = datetime.utcnow()
+
+    for i, msg in enumerate(messages):
         db_msg = Message(conversation_id=conversation_id)
+        db_msg.created_at = base_time + timedelta(microseconds=i)
 
         if isinstance(msg, HumanMessage):
             db_msg.role = "user"
