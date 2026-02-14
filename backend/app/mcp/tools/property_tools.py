@@ -17,6 +17,67 @@ logger = logging.getLogger(__name__)
 VALID_PROPERTY_STATUSES = {"active", "maintenance", "inactive"}
 
 
+@mcp.tool()
+async def property_list(
+    status: str | None = None,
+    name: str | None = None,
+    limit: int = 50,
+    user_id: str | None = None,
+) -> dict:
+    """List properties, optionally filtered by status or name.
+
+    Args:
+        status: Filter by property status (active, maintenance, inactive)
+        name: Fuzzy match on property name (e.g. "canggu")
+        limit: Maximum number of properties returned (default 50)
+        user_id: UUID of the current user (filters to only their properties)
+
+    Returns:
+        Dict with properties list and total count.
+    """
+    if status and status not in VALID_PROPERTY_STATUSES:
+        return {
+            "error": f"Invalid status '{status}'. Must be one of: {', '.join(sorted(VALID_PROPERTY_STATUSES))}",
+            "properties": [],
+            "total": 0,
+        }
+
+    try:
+        session_factory = get_session_factory()
+        async with session_factory() as session:
+            query = select(Property)
+
+            if user_id:
+                query = query.where(Property.owner_id == uuid.UUID(user_id))
+            if status:
+                query = query.where(Property.status == status)
+            if name:
+                query = query.where(Property.name.ilike(f"%{name}%"))
+
+            query = query.order_by(Property.created_at.desc()).limit(limit)
+            result = await session.execute(query)
+            properties = list(result.scalars().all())
+
+            return {
+                "properties": [
+                    {
+                        "id": str(p.id),
+                        "name": p.name,
+                        "location": p.location,
+                        "property_type": p.property_type,
+                        "max_guests": p.max_guests,
+                        "base_price_per_night": str(p.base_price_per_night) if p.base_price_per_night else None,
+                        "status": p.status,
+                    }
+                    for p in properties
+                ],
+                "total": len(properties),
+            }
+    except Exception as e:
+        logger.exception("property_list failed")
+        return {"error": str(e), "properties": [], "total": 0}
+
+
 async def _resolve_property(
     session, property_id: str | None, property_name: str | None, user_id: str | None = None,
 ) -> Property | None:
