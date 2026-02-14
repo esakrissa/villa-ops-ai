@@ -53,15 +53,17 @@ export function MessageBubble({ message, onResumeConversation }: MessageBubblePr
   }
 
   // Assistant message
-  const isStreamingEmpty = message.isStreaming && !message.content && !message.confirmation;
   const hasToolCalls = message.toolCalls && message.toolCalls.length > 0;
   const hasConfirmation = !!message.confirmation;
+  const hasContent = !!message.content;
+  const isToolOnlyMessage = hasToolCalls && !hasContent && !hasConfirmation;
+  const isStreamingEmpty = message.isStreaming && !hasContent && !hasToolCalls && !hasConfirmation;
 
   return (
     <div className="flex justify-start">
       <div className="max-w-[85%] rounded-2xl rounded-bl-md border border-gray-200 bg-white px-4 py-2.5 shadow-sm">
         {hasToolCalls && (
-          <div className="mb-2 space-y-2">
+          <div className={isToolOnlyMessage ? "space-y-2" : "mb-2 space-y-2"}>
             {message.toolCalls!.map((tc, i) => (
               <ToolCallCard
                 key={i}
@@ -88,7 +90,7 @@ export function MessageBubble({ message, onResumeConversation }: MessageBubblePr
 
         {isStreamingEmpty ? (
           <TypingDots />
-        ) : (
+        ) : hasContent ? (
           <div className="text-sm text-gray-800">
             <Markdown
               components={{
@@ -180,7 +182,7 @@ export function MessageBubble({ message, onResumeConversation }: MessageBubblePr
             </Markdown>
             {message.isStreaming && <StreamingCursor />}
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

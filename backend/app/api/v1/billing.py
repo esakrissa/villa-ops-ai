@@ -13,6 +13,7 @@ from app.billing.plans import PLANS, get_plan
 from app.billing.stripe_client import (
     create_checkout_session,
     create_portal_session,
+    modify_subscription_price,
 )
 from app.config import settings
 from app.models.llm_usage import LLMUsage
@@ -26,6 +27,8 @@ from app.schemas.billing import (
     PortalRequest,
     PortalResponse,
     SubscriptionResponse,
+    UpgradeRequest,
+    UpgradeResponse,
     UsageResponse,
 )
 from app.services.subscription_service import (
@@ -138,6 +141,18 @@ async def create_checkout(
 
     # Ensure Stripe customer exists
     subscription = await get_or_create_subscription(db, current_user)
+
+    # Guard: prevent double subscription — paid users must use Customer Portal
+    if (
+        subscription.stripe_subscription_id
+        and subscription.status == "active"
+        and subscription.plan != "free"
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You already have an active subscription. Use the billing portal to upgrade or downgrade.",
+        )
+
     customer_id = await ensure_stripe_customer(db, current_user, subscription)
 
     # Build URLs
@@ -167,6 +182,61 @@ async def create_checkout(
         checkout_url=session.url,
         session_id=session.id,
     )
+
+
+@router.post("/upgrade", response_model=UpgradeResponse)
+async def upgrade_plan(
+    body: UpgradeRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> UpgradeResponse:
+    """Upgrade or downgrade an existing subscription in-place via Stripe."""
+    if body.plan not in ("pro", "business"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid plan. Choose 'pro' or 'business'.",
+        )
+
+    plan = get_plan(body.plan)
+    if not plan.stripe_price_id:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Stripe price ID not configured for plan.",
+        )
+
+    subscription = await get_or_create_subscription(db, current_user)
+
+    if not subscription.stripe_subscription_id or subscription.status != "active":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No active subscription to upgrade. Use checkout to subscribe first.",
+        )
+
+    if subscription.plan == body.plan:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"You are already on the {body.plan} plan.",
+        )
+
+    try:
+        await modify_subscription_price(
+            subscription.stripe_subscription_id, plan.stripe_price_id
+        )
+    except stripe.StripeError as e:
+        logger.error("Stripe upgrade error: %s", e)
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=str(e),
+        ) from e
+
+    # Update local subscription record
+    subscription.plan = body.plan
+    await db.commit()
+
+    logger.info(
+        "User %s upgraded to plan %s", current_user.id, body.plan
+    )
+    return UpgradeResponse(plan=body.plan, status="active")
 
 
 @router.post("/portal", response_model=PortalResponse)

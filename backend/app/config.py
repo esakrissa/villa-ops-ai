@@ -67,6 +67,9 @@ class Settings(BaseSettings):
     # MCP Server
     mcp_server_url: str = "http://localhost:8001/mcp"
 
+    # Exa (Web Search via hosted MCP)
+    exa_api_key: str = ""
+
     # Frontend
     frontend_url: str = "http://localhost:3000"
     cors_origins: list[str] = [

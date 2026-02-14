@@ -71,6 +71,43 @@ async def create_portal_session(
     )
 
 
+async def modify_subscription_price(
+    subscription_id: str, new_price_id: str
+) -> stripe.Subscription:
+    """Change the price on an existing subscription (plan upgrade/downgrade).
+
+    Uses proration by default so the customer is charged/credited proportionally.
+    """
+    client = get_stripe_client()
+    # Retrieve the subscription to find the current item ID
+    sub = await client.v1.subscriptions.retrieve_async(subscription_id)
+    sub_items = sub["items"]
+    if not sub_items or not sub_items.data:
+        raise ValueError(f"Subscription {subscription_id} has no items")
+    item_id = sub_items.data[0].id
+
+    logger.info(
+        "Modifying subscription %s: item %s → price %s",
+        subscription_id,
+        item_id,
+        new_price_id,
+    )
+    return await client.v1.subscriptions.update_async(
+        subscription_id,
+        params={
+            "items": [{"id": item_id, "price": new_price_id}],
+            "proration_behavior": "create_prorations",
+        },
+    )
+
+
+async def cancel_subscription(subscription_id: str) -> stripe.Subscription:
+    """Cancel a Stripe subscription immediately."""
+    client = get_stripe_client()
+    logger.info("Cancelling Stripe subscription %s", subscription_id)
+    return await client.v1.subscriptions.cancel_async(subscription_id)
+
+
 async def get_subscription(subscription_id: str) -> stripe.Subscription:
     """Retrieve a Stripe subscription by ID."""
     client = get_stripe_client()

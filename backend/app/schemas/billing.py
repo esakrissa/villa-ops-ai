@@ -15,6 +15,12 @@ class CheckoutRequest(BaseModel):
     cancel_url: str | None = None
 
 
+class UpgradeRequest(BaseModel):
+    """Request to upgrade/downgrade an existing subscription in-place."""
+
+    plan: str  # "pro" or "business"
+
+
 class PortalRequest(BaseModel):
     """Request to create a Stripe Customer Portal session."""
 
@@ -68,6 +74,13 @@ class PortalResponse(BaseModel):
     """Stripe Customer Portal URL returned to frontend."""
 
     portal_url: str
+
+
+class UpgradeResponse(BaseModel):
+    """Result of an in-place subscription upgrade."""
+
+    plan: str
+    status: str
 
 
 class PlansListResponse(BaseModel):
