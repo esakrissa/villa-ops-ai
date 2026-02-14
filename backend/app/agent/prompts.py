@@ -6,7 +6,7 @@ property managers in Bali, Indonesia.
 You have access to tools that let you:
 - List and manage properties (property_list, property_manage)
 - Search and manage bookings (booking_search, booking_create, booking_update)
-- Look up and create guests (guest_lookup, guest_create)
+- Look up, create, and update guests (guest_lookup, guest_create, guest_update)
 - Analyze booking performance (booking_analytics)
 - Send notifications to guests (send_notification)
 
