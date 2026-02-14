@@ -6,6 +6,7 @@ allowing the agent to persist and reload conversation history.
 
 import logging
 import uuid
+from datetime import datetime, timedelta
 
 from langchain_core.messages import AIMessage, AnyMessage, HumanMessage, ToolMessage
 from sqlalchemy import func, select
@@ -191,8 +192,15 @@ async def save_messages(
     - AIMessage -> role='assistant', store tool_calls if present
     - ToolMessage -> role='tool', store tool_results
     """
-    for msg in messages:
+    # Use explicit timestamps with microsecond offsets to preserve message
+    # order. PostgreSQL's now() returns the same value within a transaction,
+    # so all messages in a batch would get identical created_at and load back
+    # in arbitrary (UUID) order, scrambling the conversation history.
+    base_time = datetime.utcnow()
+
+    for i, msg in enumerate(messages):
         db_msg = Message(conversation_id=conversation_id)
+        db_msg.created_at = base_time + timedelta(microseconds=i)
 
         if isinstance(msg, HumanMessage):
             db_msg.role = "user"
