@@ -9,6 +9,7 @@ DELETE /api/v1/chat/conversations/{id} — Delete a conversation
 import json
 import logging
 import uuid
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage, ToolMessage
@@ -30,6 +31,7 @@ from app.agent.memory import (
 from app.api.deps import check_ai_query_limit, get_current_active_user, get_db
 from app.config import settings
 from app.database import async_session_factory
+from app.models.llm_usage import LLMUsage
 from app.models.user import User
 from app.schemas.chat import (
     ChatRequest,
@@ -163,6 +165,20 @@ async def chat(
                 if new_messages:
                     await save_messages(session, conversation_id, new_messages, model_used=model_name)
                     await session.commit()
+
+                # Record LLM usage for billing/plan gating
+                usage_record = LLMUsage(
+                    user_id=user_id,
+                    model=model_name,
+                    provider=model_name.split("/")[0],
+                    input_tokens=0,
+                    output_tokens=0,
+                    cost=Decimal("0"),
+                    latency_ms=0,
+                    cached=False,
+                )
+                session.add(usage_record)
+                await session.commit()
 
                 # Send completion event
                 yield json.dumps({

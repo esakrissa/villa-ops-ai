@@ -1,7 +1,11 @@
 # Project plan & Claude context (private)
 PLAN.md
+WORKFLOW.md
+NOTE.md
+COST_AND_COMPUTE.md
 CLAUDE.md
 checkpoints/
+todos/
 prompts/
 .claude/
 screenshots/
