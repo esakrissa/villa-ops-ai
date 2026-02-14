@@ -4,12 +4,6 @@ import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-# Configure root logger so all app.* loggers output to stderr (captured by Docker).
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-)
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
@@ -23,6 +17,12 @@ from app.api.v1.guests import router as guests_router
 from app.api.v1.properties import router as properties_router
 from app.api.v1.webhooks import router as webhooks_router
 from app.config import settings
+
+# Configure root logger so all app.* loggers output to stderr (captured by Docker).
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
 
 
 @asynccontextmanager

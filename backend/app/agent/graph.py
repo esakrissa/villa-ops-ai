@@ -53,7 +53,7 @@ async def create_agent(checkpointer=None):
 
     # Load MCP tools as LangChain tools
     tools = await load_mcp_tools(mcp_url)
-    logger.info(f"Loaded {len(tools)} tools from MCP server")
+    logger.info("Loaded %d MCP tools", len(tools))
 
     # Create LLM via LiteLLM (supports Gemini, Claude, GPT via unified API)
     llm = ChatLiteLLM(
@@ -85,6 +85,6 @@ async def create_agent(checkpointer=None):
 
     # Compile with optional checkpointer
     compiled = graph.compile(checkpointer=checkpointer)
-    logger.info("Agent graph compiled (checkpointer=%s)", type(checkpointer).__name__ if checkpointer else "None")
+    logger.info("Agent graph compiled (checkpointer=%s)", type(checkpointer).__name__ if checkpointer else "none")
 
     return compiled

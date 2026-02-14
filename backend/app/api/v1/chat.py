@@ -75,7 +75,7 @@ async def _stream_agent(
             if new_messages is None:
                 new_messages = []
 
-            logger.info("Starting stream for conversation %s (input type: %s)", conversation_id, type(agent_input).__name__)
+            logger.info("Chat stream started [conversation=%s]", conversation_id)
 
             async for mode, chunk in agent.astream(
                 agent_input,
@@ -83,7 +83,6 @@ async def _stream_agent(
                 stream_mode=["messages", "updates"],
             ):
                 if await request.is_disconnected():
-                    logger.info("Client disconnected, stopping stream")
                     break
 
                 if mode == "messages":
@@ -109,7 +108,7 @@ async def _stream_agent(
                 elif mode == "updates":
                     # Check for __interrupt__ events (HITL)
                     if "__interrupt__" in chunk:
-                        logger.info("HITL interrupt detected for conversation %s", conversation_id)
+                        logger.info("HITL interrupt — awaiting user confirmation [conversation=%s]", conversation_id)
                         for intr in chunk["__interrupt__"]:
                             yield json.dumps({
                                 "type": "confirmation",
@@ -119,7 +118,6 @@ async def _stream_agent(
                         # Save accumulated messages before pausing so they
                         # survive a page refresh (tool_call cards stay visible).
                         if new_messages:
-                            logger.info("Saving %d messages before interrupt", len(new_messages))
                             await save_messages(session, conversation_id, new_messages, model_used=model_name)
                             await session.commit()
 
@@ -140,7 +138,6 @@ async def _stream_agent(
                         for msg in node_msgs:
                             new_messages.append(msg)
                             if isinstance(msg, ToolMessage):
-                                logger.info("Tool result from %s", getattr(msg, "name", "unknown"))
                                 yield json.dumps({
                                     "type": "tool_result",
                                     "name": getattr(msg, "name", ""),
@@ -162,7 +159,6 @@ async def _stream_agent(
 
             # Save all new messages to DB
             if new_messages:
-                logger.info("Saving %d messages after stream completion", len(new_messages))
                 await save_messages(session, conversation_id, new_messages, model_used=model_name)
                 await session.commit()
 
@@ -273,20 +269,18 @@ async def resume_conversation(
         )
 
     model_name = settings.default_llm_model
-    logger.info("Resume request for conversation %s: action=%s", conversation_id, body.action)
+    logger.info("HITL resume action=%s [conversation=%s]", body.action, conversation_id)
 
     async def event_generator():
         db_uri = settings.psycopg_database_url
         try:
             async with AsyncPostgresSaver.from_conn_string(db_uri) as checkpointer:
                 await checkpointer.setup()
-                logger.info("Checkpointer ready, creating agent for resume")
                 agent = await create_agent(checkpointer=checkpointer)
                 config = {"configurable": {"thread_id": str(conversation_id)}}
 
                 # Resume the graph with the user's decision
                 resume_input = Command(resume={"action": body.action})
-                logger.info("Resuming graph with action=%s for thread=%s", body.action, conversation_id)
 
                 async for event in _stream_agent(
                     agent, resume_input, config, request,

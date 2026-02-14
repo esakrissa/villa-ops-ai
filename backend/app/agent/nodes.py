@@ -76,7 +76,6 @@ def create_tools_node_with_confirmation(standard_tool_node, destructive_tools: s
         results = []
         for tc in last_msg.tool_calls:
             if tc["name"] in destructive_tools:
-                logger.info("Destructive tool %s — requesting confirmation", tc["name"])
                 # Interrupt: send confirmation payload to the client
                 decision = interrupt({
                     "type": "destructive_action",
@@ -85,9 +84,8 @@ def create_tools_node_with_confirmation(standard_tool_node, destructive_tools: s
                     "message": f"Are you sure you want to {tc['name'].replace('_', ' ')}?",
                 })
 
-                logger.info("Interrupt resumed with decision: %s", decision)
                 if decision.get("action") != "approve":
-                    logger.info("User cancelled %s", tc["name"])
+                    logger.info("Tool %s cancelled by user", tc["name"])
                     results.append(ToolMessage(
                         content="Action cancelled by user.",
                         tool_call_id=tc["id"],
@@ -96,14 +94,12 @@ def create_tools_node_with_confirmation(standard_tool_node, destructive_tools: s
                     continue
 
             # Execute the tool via standard tool node (single tool call)
-            # We run the full standard_tool_node with a filtered state
-            logger.info("Executing tool %s (id=%s)", tc["name"], tc.get("id", "?"))
             single_msg = last_msg.model_copy()
             single_msg.tool_calls = [tc]
-            single_state = {**state, "messages": messages[:-1] + [single_msg]}
+            single_state = {**state, "messages": [*messages[:-1], single_msg]}
             result = await standard_tool_node.ainvoke(single_state)
             result_msgs = result.get("messages", [])
-            logger.info("Tool %s returned %d result messages", tc["name"], len(result_msgs))
+            logger.info("Tool %s executed", tc["name"])
             results.extend(result_msgs)
 
         return {"messages": results}
