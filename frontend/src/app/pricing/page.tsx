@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { PricingCard } from "@/components/billing/PricingCard";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { apiFetch, API_BASE_URL } from "@/lib/api";
 import { isAuthenticated } from "@/lib/auth";
 import { useSubscription } from "@/lib/hooks/useSubscription";
@@ -91,6 +92,7 @@ export default function PricingPage() {
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [authed, setAuthed] = useState(false);
+  const [confirmPlan, setConfirmPlan] = useState<string | null>(null);
   const { subscription } = useSubscription();
 
   useEffect(() => {
@@ -122,24 +124,9 @@ export default function PricingPage() {
       return;
     }
 
-    // Paid users: upgrade in-place via /upgrade endpoint (Stripe Subscription.modify)
+    // Paid users: show confirmation modal first
     if (hasActivePaidPlan) {
-      setCheckoutLoading(planName);
-      setError(null);
-      try {
-        await apiFetch<{ plan: string; status: string }>(
-          "/api/v1/billing/upgrade",
-          {
-            method: "POST",
-            body: JSON.stringify({ plan: planName }),
-          },
-        );
-        window.location.href = "/dashboard/billing";
-      } catch {
-        setError("Failed to upgrade plan. Please try again.");
-      } finally {
-        setCheckoutLoading(null);
-      }
+      setConfirmPlan(planName);
       return;
     }
 
@@ -165,6 +152,32 @@ export default function PricingPage() {
     }
   }
 
+  async function doUpgrade(planName: string) {
+    setCheckoutLoading(planName);
+    setError(null);
+    try {
+      await apiFetch<{ plan: string; status: string }>(
+        "/api/v1/billing/upgrade",
+        {
+          method: "POST",
+          body: JSON.stringify({ plan: planName }),
+        },
+      );
+      window.location.href = "/dashboard/billing";
+    } catch {
+      setError("Failed to upgrade plan. Please try again.");
+    } finally {
+      setCheckoutLoading(null);
+    }
+  }
+
+  const confirmTarget = confirmPlan
+    ? plans.find((p) => p.name === confirmPlan)
+    : null;
+  const confirmPrice = confirmTarget
+    ? `$${(confirmTarget.price_monthly_cents / 100).toFixed(0)}/mo`
+    : "";
+
   function getCtaLabel(planName: string): string {
     if (!authed) return planName === "free" ? "Get started" : "Sign up";
     if (subscription?.plan.name === planName) return "Current Plan";
@@ -174,6 +187,20 @@ export default function PricingPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
+      <ConfirmModal
+        open={!!confirmPlan}
+        title={`Upgrade to ${confirmTarget?.display_name ?? ""}`}
+        description={`Your plan will change to ${confirmTarget?.display_name ?? ""} at ${confirmPrice}. The prorated difference will be charged to your payment method immediately.`}
+        confirmLabel="Upgrade now"
+        cancelLabel="Cancel"
+        onConfirm={() => {
+          const p = confirmPlan!;
+          setConfirmPlan(null);
+          doUpgrade(p);
+        }}
+        onCancel={() => setConfirmPlan(null)}
+      />
+
       {/* Header */}
       <header className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
         <Link href="/" className="text-xl font-bold text-indigo-600">

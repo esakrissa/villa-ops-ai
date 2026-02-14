@@ -43,6 +43,7 @@ export async function apiFetch<T>(
     if (
       res.status === 401 &&
       !isRefreshing &&
+      path !== "/api/v1/auth/login" &&
       path !== "/api/v1/auth/refresh"
     ) {
       isRefreshing = true;
