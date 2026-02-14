@@ -259,6 +259,147 @@ class TestGuestLookup:
         names = [g["name"] for g in result["guests"]]
         assert any("Sarah" in n for n in names)
 
+    async def test_lookup_by_email(self, mcp_guest):
+        from app.mcp.tools.guest_tools import guest_lookup
+
+        result = await guest_lookup(email=mcp_guest.email)
+        assert result["total"] >= 1
+        emails = [g["email"] for g in result["guests"]]
+        assert mcp_guest.email in emails
+
+    async def test_lookup_with_owner_fallback(self, mcp_owner, db_session):
+        """New guest with no bookings should be found via global fallback."""
+        from app.mcp.tools.guest_tools import guest_create, guest_lookup
+
+        # Create a new guest (no bookings yet)
+        create_result = await guest_create(
+            name="New Guest Fallback",
+            email=f"fallback-{uuid.uuid4().hex[:8]}@test.com",
+        )
+        assert create_result["guest"] is not None
+
+        # Lookup with owner filter — should fallback to global search
+        result = await guest_lookup(
+            name="New Guest Fallback",
+            user_id=str(mcp_owner.id),
+        )
+        assert result["total"] >= 1
+        names = [g["name"] for g in result["guests"]]
+        assert "New Guest Fallback" in names
+
+    async def test_lookup_not_found(self):
+        from app.mcp.tools.guest_tools import guest_lookup
+
+        result = await guest_lookup(name="Nonexistent Person 999")
+        assert result["total"] == 0
+        assert result["guests"] == []
+
+    async def test_lookup_with_bookings(self, mcp_guest, mcp_bookings, mcp_owner):
+        from app.mcp.tools.guest_tools import guest_lookup
+
+        result = await guest_lookup(
+            name="Sarah",
+            include_bookings=True,
+            user_id=str(mcp_owner.id),
+        )
+        assert result["total"] >= 1
+        guest = result["guests"][0]
+        assert "bookings" in guest
+        assert len(guest["bookings"]) > 0
+
+
+# ---------------------------------------------------------------------------
+# guest_create tests
+# ---------------------------------------------------------------------------
+
+
+class TestGuestCreate:
+    async def test_create_new_guest(self):
+        from app.mcp.tools.guest_tools import guest_create
+
+        result = await guest_create(
+            name="John Smith",
+            email=f"john-{uuid.uuid4().hex[:8]}@test.com",
+            phone="+1234567890",
+            nationality="American",
+        )
+        assert result["guest"] is not None
+        assert result["already_existed"] is False
+        assert result["guest"]["name"] == "John Smith"
+        assert result["guest"]["phone"] == "+1234567890"
+
+    async def test_create_duplicate_email(self, mcp_guest):
+        from app.mcp.tools.guest_tools import guest_create
+
+        result = await guest_create(
+            name="Another Person",
+            email=mcp_guest.email,
+        )
+        assert result["already_existed"] is True
+        assert result["guest"]["id"] == str(mcp_guest.id)
+
+    async def test_create_missing_name(self):
+        from app.mcp.tools.guest_tools import guest_create
+
+        result = await guest_create(name="", email="test@test.com")
+        assert "error" in result
+
+    async def test_create_missing_email(self):
+        from app.mcp.tools.guest_tools import guest_create
+
+        result = await guest_create(name="Test", email="")
+        assert "error" in result
+
+
+# ---------------------------------------------------------------------------
+# guest_update tests
+# ---------------------------------------------------------------------------
+
+
+class TestGuestUpdate:
+    async def test_update_name(self, mcp_guest):
+        from app.mcp.tools.guest_tools import guest_update
+
+        result = await guest_update(
+            guest_id=str(mcp_guest.id),
+            name="Sarah Chen-Updated",
+        )
+        assert result["guest"] is not None
+        assert result["guest"]["name"] == "Sarah Chen-Updated"
+
+    async def test_update_invalid_id(self):
+        from app.mcp.tools.guest_tools import guest_update
+
+        result = await guest_update(guest_id="not-a-uuid", name="Test")
+        assert "error" in result
+
+    async def test_update_not_found(self):
+        from app.mcp.tools.guest_tools import guest_update
+
+        result = await guest_update(guest_id=str(uuid.uuid4()), name="Test")
+        assert "error" in result
+        assert "not found" in result["error"]
+
+    async def test_update_no_fields(self, mcp_guest):
+        from app.mcp.tools.guest_tools import guest_update
+
+        result = await guest_update(guest_id=str(mcp_guest.id))
+        assert "error" in result
+        assert "At least one field" in result["error"]
+
+    async def test_update_email_uniqueness(self, mcp_guest, db_session):
+        from app.mcp.tools.guest_tools import guest_create, guest_update
+
+        # Create another guest
+        other_email = f"other-{uuid.uuid4().hex[:8]}@test.com"
+        create_result = await guest_create(name="Other", email=other_email)
+        other_id = create_result["guest"]["id"]
+
+        # Try to update other guest's email to mcp_guest's email
+        result = await guest_update(guest_id=other_id, email=mcp_guest.email)
+        assert "error" in result
+        assert "already used" in result["error"]
+
 
 # ---------------------------------------------------------------------------
 # property_manage tests

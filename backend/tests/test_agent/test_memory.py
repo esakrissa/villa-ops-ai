@@ -14,6 +14,7 @@ from app.agent.memory import (
     get_conversation_with_messages,
     get_user_conversations,
     load_conversation_messages,
+    sanitize_message_history,
     save_messages,
 )
 from app.models.user import User
@@ -145,18 +146,21 @@ class TestMessageSerialization:
         conv_id = conv.id
         user_id = test_user.id
         tool_calls = [{"name": "booking_search", "args": {"query": "test"}, "id": "tc_1"}]
-        msg = AIMessage(content="", tool_calls=tool_calls)
-        await save_messages(db_session, conv_id, [msg])
+        ai_msg = AIMessage(content="", tool_calls=tool_calls)
+        # Include matching ToolMessage so sanitize_message_history keeps both
+        tool_msg = ToolMessage(content='[{"id": "b1"}]', tool_call_id="tc_1")
+        await save_messages(db_session, conv_id, [ai_msg, tool_msg])
         db_session.expunge_all()
 
         loaded = await load_conversation_messages(db_session, conv_id, user_id)
-        assert len(loaded) == 1
+        assert len(loaded) == 2
         assert isinstance(loaded[0], AIMessage)
         assert len(loaded[0].tool_calls) == 1
         tc = loaded[0].tool_calls[0]
         assert tc["name"] == "booking_search"
         assert tc["args"] == {"query": "test"}
         assert tc["id"] == "tc_1"
+        assert isinstance(loaded[1], ToolMessage)
 
     async def test_save_and_load_tool_message(
         self, db_session: AsyncSession, test_user: User
@@ -164,15 +168,17 @@ class TestMessageSerialization:
         conv = await create_conversation(db_session, test_user.id, title="Tool Result Test")
         conv_id = conv.id
         user_id = test_user.id
-        msg = ToolMessage(content='{"results": []}', tool_call_id="tc_1")
-        await save_messages(db_session, conv_id, [msg])
+        # Include matching AIMessage so sanitize_message_history keeps both
+        ai_msg = AIMessage(content="", tool_calls=[{"name": "booking_search", "args": {}, "id": "tc_1"}])
+        tool_msg = ToolMessage(content='{"results": []}', tool_call_id="tc_1")
+        await save_messages(db_session, conv_id, [ai_msg, tool_msg])
         db_session.expunge_all()
 
         loaded = await load_conversation_messages(db_session, conv_id, user_id)
-        assert len(loaded) == 1
-        assert isinstance(loaded[0], ToolMessage)
-        assert loaded[0].content == '{"results": []}'
-        assert loaded[0].tool_call_id == "tc_1"
+        assert len(loaded) == 2
+        assert isinstance(loaded[1], ToolMessage)
+        assert loaded[1].content == '{"results": []}'
+        assert loaded[1].tool_call_id == "tc_1"
 
     async def test_save_multiple_messages_roundtrip(
         self, db_session: AsyncSession, test_user: User
@@ -209,6 +215,59 @@ class TestMessageSerialization:
         fake_user_id = uuid.uuid4()
         loaded = await load_conversation_messages(db_session, conv_id, fake_user_id)
         assert loaded == []
+
+
+class TestSanitizeMessageHistory:
+    """Test sanitize_message_history strips orphaned messages."""
+
+    def test_valid_conversation_unchanged(self):
+        messages = [
+            HumanMessage(content="Hello"),
+            AIMessage(content="", tool_calls=[{"name": "search", "args": {}, "id": "tc_1"}]),
+            ToolMessage(content="results", tool_call_id="tc_1"),
+            AIMessage(content="Here are the results."),
+        ]
+        result = sanitize_message_history(messages)
+        assert len(result) == 4
+
+    def test_orphaned_tool_message_removed(self):
+        messages = [
+            HumanMessage(content="Hello"),
+            ToolMessage(content="results", tool_call_id="tc_orphan"),
+        ]
+        result = sanitize_message_history(messages)
+        assert len(result) == 1
+        assert isinstance(result[0], HumanMessage)
+
+    def test_orphaned_ai_with_tool_calls_removed(self):
+        # AIMessage with tool_calls but no content, and no matching ToolMessage
+        messages = [
+            HumanMessage(content="Hello"),
+            AIMessage(content="", tool_calls=[{"name": "search", "args": {}, "id": "tc_1"}]),
+        ]
+        result = sanitize_message_history(messages)
+        assert len(result) == 1
+        assert isinstance(result[0], HumanMessage)
+
+    def test_ai_with_content_and_tool_calls_kept(self):
+        # AIMessage with both content AND tool_calls — kept even without ToolMessage
+        messages = [
+            HumanMessage(content="Hello"),
+            AIMessage(
+                content="Let me search for that.",
+                tool_calls=[{"name": "search", "args": {}, "id": "tc_1"}],
+            ),
+        ]
+        result = sanitize_message_history(messages)
+        assert len(result) == 2
+
+    def test_empty_list_unchanged(self):
+        assert sanitize_message_history([]) == []
+
+    def test_human_only_unchanged(self):
+        messages = [HumanMessage(content="Hello")]
+        result = sanitize_message_history(messages)
+        assert len(result) == 1
 
 
 class TestGenerateTitle:
