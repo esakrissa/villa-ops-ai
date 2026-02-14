@@ -14,6 +14,7 @@ export default function ChatPage() {
     error,
     conversationId,
     sendMessage,
+    resumeConversation,
     clearMessages,
     loadConversation,
   } = useChat();
@@ -161,6 +162,7 @@ export default function ChatPage() {
             messages={messages}
             isLoading={isLoading}
             onSuggestionClick={sendMessage}
+            onResumeConversation={resumeConversation}
           />
         </div>
 

@@ -8,6 +8,7 @@ interface ChatWindowProps {
   messages: ChatMessage[];
   isLoading: boolean;
   onSuggestionClick?: (suggestion: string) => void;
+  onResumeConversation?: (action: "approve" | "cancel") => Promise<void>;
 }
 
 const suggestions = [
@@ -63,6 +64,7 @@ export function ChatWindow({
   messages,
   isLoading,
   onSuggestionClick,
+  onResumeConversation,
 }: ChatWindowProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -78,7 +80,11 @@ export function ChatWindow({
     <div className="flex h-full flex-col overflow-y-auto">
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 px-4 py-6">
         {messages.map((message) => (
-          <MessageBubble key={message.id} message={message} />
+          <MessageBubble
+            key={message.id}
+            message={message}
+            onResumeConversation={onResumeConversation}
+          />
         ))}
         <div ref={bottomRef} />
       </div>

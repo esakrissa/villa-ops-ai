@@ -2,7 +2,7 @@
 
 Builds a StateGraph with agent + tool nodes and conditional routing.
 The agent node calls the LLM; if it requests tool calls, the tool node
-executes them and loops back to the agent. Otherwise the graph ends.
+executes them (with HITL interrupt for destructive tools) and loops back.
 
 Flow:
     START → agent → [has tool_calls?]
@@ -18,20 +18,27 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.prebuilt import ToolNode
 
 from app.agent.mcp_client import load_mcp_tools
-from app.agent.nodes import create_agent_node, should_continue
+from app.agent.nodes import create_agent_node, create_tools_node_with_confirmation, should_continue
 from app.agent.state import AgentState
 from app.config import settings
 
 logger = logging.getLogger(__name__)
 
+# Names of MCP tools that require human confirmation before execution
+DESTRUCTIVE_TOOLS = {"property_delete", "guest_delete"}
 
-async def create_agent():
+
+async def create_agent(checkpointer=None):
     """Create and return the compiled VillaOps AI agent graph.
 
     1. Loads MCP tools from the MCP server (Streamable HTTP)
     2. Creates a ChatLiteLLM instance with the configured model
     3. Builds a StateGraph with agent + tool nodes
     4. Returns the compiled graph
+
+    Args:
+        checkpointer: Optional LangGraph checkpointer for HITL persistence.
+                     Required for interrupt()/Command(resume=...) support.
     """
     # Set API keys for LiteLLM
     if settings.gemini_api_key:
@@ -46,7 +53,7 @@ async def create_agent():
 
     # Load MCP tools as LangChain tools
     tools = await load_mcp_tools(mcp_url)
-    logger.info(f"Loaded {len(tools)} tools from MCP server")
+    logger.info("Loaded %d MCP tools", len(tools))
 
     # Create LLM via LiteLLM (supports Gemini, Claude, GPT via unified API)
     llm = ChatLiteLLM(
@@ -60,18 +67,24 @@ async def create_agent():
 
     # Add nodes
     agent_node = create_agent_node(llm, tools)
-    tool_node = ToolNode(tools)
+
+    # Use custom tools node with HITL interrupt for destructive operations,
+    # falling back to standard ToolNode for non-destructive tools
+    standard_tool_node = ToolNode(tools)
+    tools_with_confirmation = create_tools_node_with_confirmation(
+        standard_tool_node, DESTRUCTIVE_TOOLS
+    )
 
     graph.add_node("agent", agent_node)
-    graph.add_node("tools", tool_node)
+    graph.add_node("tools", tools_with_confirmation)
 
     # Add edges
     graph.add_edge(START, "agent")
     graph.add_conditional_edges("agent", should_continue, {"tools": "tools", END: END})
     graph.add_edge("tools", "agent")
 
-    # Compile
-    compiled = graph.compile()
-    logger.info("Agent graph compiled successfully")
+    # Compile with optional checkpointer
+    compiled = graph.compile(checkpointer=checkpointer)
+    logger.info("Agent graph compiled (checkpointer=%s)", type(checkpointer).__name__ if checkpointer else "none")
 
     return compiled

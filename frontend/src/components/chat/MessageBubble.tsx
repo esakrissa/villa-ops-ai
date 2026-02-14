@@ -3,9 +3,11 @@
 import Markdown from "react-markdown";
 import type { ChatMessage } from "@/lib/hooks/useChat";
 import { ToolCallCard } from "./ToolCallCard";
+import { ConfirmationCard } from "./ConfirmationCard";
 
 interface MessageBubbleProps {
   message: ChatMessage;
+  onResumeConversation?: (action: "approve" | "cancel") => Promise<void>;
 }
 
 function StreamingCursor() {
@@ -24,7 +26,7 @@ function TypingDots() {
   );
 }
 
-export function MessageBubble({ message }: MessageBubbleProps) {
+export function MessageBubble({ message, onResumeConversation }: MessageBubbleProps) {
   const isUser = message.role === "user";
   const isTool = message.role === "tool";
 
@@ -51,8 +53,9 @@ export function MessageBubble({ message }: MessageBubbleProps) {
   }
 
   // Assistant message
-  const isStreamingEmpty = message.isStreaming && !message.content;
+  const isStreamingEmpty = message.isStreaming && !message.content && !message.confirmation;
   const hasToolCalls = message.toolCalls && message.toolCalls.length > 0;
+  const hasConfirmation = !!message.confirmation;
 
   return (
     <div className="flex justify-start">
@@ -68,6 +71,18 @@ export function MessageBubble({ message }: MessageBubbleProps) {
                 isStreaming={message.isStreaming}
               />
             ))}
+          </div>
+        )}
+
+        {hasConfirmation && (
+          <div className="mb-2">
+            <ConfirmationCard
+              payload={message.confirmation!}
+              onConfirm={() => onResumeConversation?.("approve")}
+              onCancel={() => onResumeConversation?.("cancel")}
+              isResolved={message.confirmationResolved}
+              resolvedAction={message.confirmationAction}
+            />
           </div>
         )}
 

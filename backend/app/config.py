@@ -99,5 +99,13 @@ class Settings(BaseSettings):
             url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
         return url
 
+    @property
+    def psycopg_database_url(self) -> str:
+        """Return a postgresql:// URL for psycopg (used by langgraph checkpointer)."""
+        url = self.database_url
+        if "+asyncpg" in url:
+            url = url.replace("postgresql+asyncpg://", "postgresql://", 1)
+        return url
+
 
 settings = Settings()

@@ -644,7 +644,7 @@ async def seed() -> None:
         # ------------------------------------------------------------------
         created_guests: list[Guest] = []
         for guest_data in GUESTS:
-            guest = Guest(**guest_data)
+            guest = Guest(owner_id=user.id, **guest_data)
             session.add(guest)
             await session.flush()
             created_guests.append(guest)

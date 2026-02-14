@@ -1,7 +1,6 @@
 """Guests CRUD API router.
 
-Guests are shared resources — any authenticated user can create and view guests.
-This is intentional because the same guest may book at different managers' properties.
+Guests are isolated per user — each user can only see and manage their own guests.
 """
 
 import uuid
@@ -35,19 +34,21 @@ async def create_guest(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ) -> Guest:
-    """Create a new guest record.
+    """Create a new guest record owned by the current user.
 
-    Raises 409 if a guest with the same email already exists.
+    Raises 409 if the current user already has a guest with the same email.
     """
-    # Check email uniqueness
-    existing = await db.execute(select(Guest).where(Guest.email == body.email))
+    # Check email uniqueness scoped to owner
+    existing = await db.execute(
+        select(Guest).where(Guest.email == body.email, Guest.owner_id == current_user.id)
+    )
     if existing.scalar_one_or_none():
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Guest with this email already exists",
         )
 
-    guest = Guest(**body.model_dump())
+    guest = Guest(owner_id=current_user.id, **body.model_dump())
     db.add(guest)
     await db.flush()
     await db.refresh(guest)
@@ -66,8 +67,8 @@ async def list_guests(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ) -> dict:
-    """Return a paginated list of guests, optionally filtered by a search term."""
-    base_filter = []
+    """Return a paginated list of the current user's guests."""
+    base_filter = [Guest.owner_id == current_user.id]
 
     if search:
         search_pattern = f"%{search}%"
@@ -79,17 +80,13 @@ async def list_guests(
         )
 
     # Count total matching guests
-    count_query = select(func.count()).select_from(Guest)
-    if base_filter:
-        count_query = count_query.where(*base_filter)
+    count_query = select(func.count()).select_from(Guest).where(*base_filter)
     total_result = await db.execute(count_query)
     total = total_result.scalar_one()
 
     # Fetch page
     items_query = (
-        (select(Guest).where(*base_filter).offset(skip).limit(limit).order_by(Guest.created_at.desc()))
-        if base_filter
-        else (select(Guest).offset(skip).limit(limit).order_by(Guest.created_at.desc()))
+        select(Guest).where(*base_filter).offset(skip).limit(limit).order_by(Guest.created_at.desc())
     )
     result = await db.execute(items_query)
     items = list(result.scalars().all())
@@ -107,8 +104,10 @@ async def get_guest(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
 ) -> Guest:
-    """Return a single guest by UUID. Raises 404 if not found."""
-    result = await db.execute(select(Guest).where(Guest.id == guest_id))
+    """Return a single guest by UUID. Only returns guests owned by current user."""
+    result = await db.execute(
+        select(Guest).where(Guest.id == guest_id, Guest.owner_id == current_user.id)
+    )
     guest = result.scalar_one_or_none()
 
     if guest is None:
@@ -133,9 +132,11 @@ async def update_guest(
 ) -> Guest:
     """Partially update a guest. Only explicitly provided fields are changed.
 
-    If the email is being changed, checks for uniqueness and raises 409 if taken.
+    If the email is being changed, checks for uniqueness scoped to owner.
     """
-    result = await db.execute(select(Guest).where(Guest.id == guest_id))
+    result = await db.execute(
+        select(Guest).where(Guest.id == guest_id, Guest.owner_id == current_user.id)
+    )
     guest = result.scalar_one_or_none()
 
     if guest is None:
@@ -146,9 +147,15 @@ async def update_guest(
 
     update_data = body.model_dump(exclude_unset=True)
 
-    # If email is being changed, check uniqueness
+    # If email is being changed, check uniqueness scoped to owner
     if "email" in update_data and update_data["email"] != guest.email:
-        existing = await db.execute(select(Guest).where(Guest.email == update_data["email"]))
+        existing = await db.execute(
+            select(Guest).where(
+                Guest.email == update_data["email"],
+                Guest.owner_id == current_user.id,
+                Guest.id != guest_id,
+            )
+        )
         if existing.scalar_one_or_none():
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -176,9 +183,11 @@ async def delete_guest(
 ) -> dict:
     """Delete a guest by UUID. Cascades to associated bookings.
 
-    Raises 404 if the guest does not exist.
+    Only deletes guests owned by the current user.
     """
-    result = await db.execute(select(Guest).where(Guest.id == guest_id))
+    result = await db.execute(
+        select(Guest).where(Guest.id == guest_id, Guest.owner_id == current_user.id)
+    )
     guest = result.scalar_one_or_none()
 
     if guest is None:

@@ -11,6 +11,7 @@ from app.database import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 if TYPE_CHECKING:
     from app.models.conversation import Conversation
+    from app.models.guest import Guest
     from app.models.llm_usage import LLMUsage
     from app.models.property import Property
     from app.models.subscription import Subscription
@@ -35,6 +36,7 @@ class User(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         "Subscription", back_populates="user", uselist=False, lazy="selectin"
     )
     properties: Mapped[list[Property]] = relationship("Property", back_populates="owner", lazy="selectin")
+    guests: Mapped[list[Guest]] = relationship("Guest", back_populates="owner", lazy="selectin")
     conversations: Mapped[list[Conversation]] = relationship("Conversation", back_populates="user", lazy="selectin")
     llm_usages: Mapped[list[LLMUsage]] = relationship("LLMUsage", back_populates="user", lazy="selectin")
 
