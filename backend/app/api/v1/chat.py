@@ -100,7 +100,7 @@ async def chat(
                 new_messages: list = [user_msg]
 
                 async for mode, chunk in agent.astream(
-                    {"messages": history},
+                    {"messages": history, "user_id": str(user_id)},
                     stream_mode=["messages", "updates"],
                 ):
                     if await request.is_disconnected():

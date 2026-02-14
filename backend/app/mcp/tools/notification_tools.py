@@ -92,6 +92,7 @@ async def send_notification(
     guest_email: str | None = None,
     booking_id: str | None = None,
     custom_message: str | None = None,
+    user_id: str | None = None,
 ) -> dict:
     """Compose and send a notification to a guest using a template.
 
@@ -103,6 +104,7 @@ async def send_notification(
         guest_email: Direct email address (alternative to guest_id)
         booking_id: UUID of the related booking (used to fill template variables)
         custom_message: Custom message body (required for "custom" template)
+        user_id: UUID of the current user (verifies booking ownership)
 
     Returns:
         Dict with composed notification details (recipient, subject, body) and status.
@@ -160,6 +162,8 @@ async def send_notification(
                     return {"error": f"Invalid booking_id: '{booking_id}'", "status": "failed"}
 
                 if booking is None:
+                    return {"error": f"Booking not found: '{booking_id}'", "status": "failed"}
+                if user_id and booking.property and str(booking.property.owner_id) != user_id:
                     return {"error": f"Booking not found: '{booking_id}'", "status": "failed"}
                 prop = booking.property
 

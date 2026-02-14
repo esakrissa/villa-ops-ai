@@ -49,6 +49,7 @@ async def booking_analytics(
     period_start: str | None = None,
     period_end: str | None = None,
     metric: str = "summary",
+    user_id: str | None = None,
 ) -> dict:
     """Analyze booking performance: occupancy, revenue, and trends.
 
@@ -58,6 +59,7 @@ async def booking_analytics(
         period_start: Start date for analysis (YYYY-MM-DD, defaults to 30 days ago)
         period_end: End date for analysis (YYYY-MM-DD, defaults to today)
         metric: Type of analysis — "summary" (all), "occupancy", "revenue", or "trends"
+        user_id: UUID of the current user (filters to only their properties)
 
     Returns:
         Dict with analytics results based on the requested metric.
@@ -81,6 +83,8 @@ async def booking_analytics(
         async with session_factory() as session:
             # Fetch properties
             prop_query = select(Property)
+            if user_id:
+                prop_query = prop_query.where(Property.owner_id == uuid.UUID(user_id))
             if property_name:
                 prop_query = prop_query.where(Property.name.ilike(f"%{property_name}%"))
             if property_id:
