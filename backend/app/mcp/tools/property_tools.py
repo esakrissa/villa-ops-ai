@@ -17,17 +17,22 @@ logger = logging.getLogger(__name__)
 VALID_PROPERTY_STATUSES = {"active", "maintenance", "inactive"}
 
 
-async def _resolve_property(session, property_id: str | None, property_name: str | None) -> Property | None:
-    """Resolve a property by ID or fuzzy name match."""
+async def _resolve_property(
+    session, property_id: str | None, property_name: str | None, user_id: str | None = None,
+) -> Property | None:
+    """Resolve a property by ID or fuzzy name match, optionally filtered by owner."""
     if property_id:
-        result = await session.execute(
-            select(Property).where(Property.id == uuid.UUID(property_id))
-        )
+        query = select(Property).where(Property.id == uuid.UUID(property_id))
+        if user_id:
+            query = query.where(Property.owner_id == uuid.UUID(user_id))
+        result = await session.execute(query)
         return result.scalar_one_or_none()
     if property_name:
-        result = await session.execute(
-            select(Property).where(Property.name.ilike(f"%{property_name}%")).limit(1)
-        )
+        query = select(Property).where(Property.name.ilike(f"%{property_name}%"))
+        if user_id:
+            query = query.where(Property.owner_id == uuid.UUID(user_id))
+        query = query.limit(1)
+        result = await session.execute(query)
         return result.scalar_one_or_none()
     return None
 
@@ -41,6 +46,7 @@ async def property_manage(
     check_out: str | None = None,
     base_price_per_night: str | None = None,
     status: str | None = None,
+    user_id: str | None = None,
 ) -> dict:
     """Manage properties: check availability, update pricing, or change status.
 
@@ -52,6 +58,7 @@ async def property_manage(
         check_out: End date for availability check (YYYY-MM-DD)
         base_price_per_night: New price per night (for update_pricing action)
         status: New status: active, maintenance, inactive (for update_status action)
+        user_id: UUID of the current user (filters to only their properties)
 
     Returns:
         Dict with action result or error details.
@@ -63,7 +70,7 @@ async def property_manage(
     try:
         session_factory = get_session_factory()
         async with session_factory() as session:
-            prop = await _resolve_property(session, property_id, property_name)
+            prop = await _resolve_property(session, property_id, property_name, user_id)
             if prop is None:
                 return {"error": "Property not found. Provide a valid property_id or property_name."}
 

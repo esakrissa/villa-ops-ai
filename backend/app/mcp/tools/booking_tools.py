@@ -27,6 +27,7 @@ async def booking_search(
     check_in_from: str | None = None,
     check_in_to: str | None = None,
     limit: int = 20,
+    user_id: str | None = None,
 ) -> dict:
     """Search bookings by property, guest, status, or date range.
 
@@ -38,6 +39,7 @@ async def booking_search(
         check_in_from: Bookings with check_in >= this date (YYYY-MM-DD)
         check_in_to: Bookings with check_in <= this date (YYYY-MM-DD)
         limit: Maximum number of results (default 20)
+        user_id: UUID of the current user (filters to only their properties)
 
     Returns:
         Dict with bookings list, total count, and applied query filters.
@@ -51,6 +53,10 @@ async def booking_search(
                 .join(Guest, Booking.guest_id == Guest.id)
                 .options(selectinload(Booking.property), selectinload(Booking.guest))
             )
+
+            # Filter by owner
+            if user_id:
+                query = query.where(Property.owner_id == uuid.UUID(user_id))
 
             # Apply dynamic filters
             if property_name:
@@ -150,6 +156,7 @@ async def booking_create(
     status: str = "pending",
     total_price: str | None = None,
     special_requests: str | None = None,
+    user_id: str | None = None,
 ) -> dict:
     """Create a new booking with availability validation.
 
@@ -162,6 +169,7 @@ async def booking_create(
         status: Initial status — "pending" or "confirmed" (default "pending")
         total_price: Total price for the stay (optional)
         special_requests: Special requests from the guest (optional)
+        user_id: UUID of the current user (verifies property ownership)
 
     Returns:
         Dict with created booking details, or error if validation fails.
@@ -194,9 +202,11 @@ async def booking_create(
     try:
         session_factory = get_session_factory()
         async with session_factory() as session:
-            # Verify property exists
+            # Verify property exists and belongs to user
             prop = await session.get(Property, prop_uuid)
             if prop is None:
+                return {"error": f"Property '{property_id}' not found.", "booking": None}
+            if user_id and str(prop.owner_id) != user_id:
                 return {"error": f"Property '{property_id}' not found.", "booking": None}
 
             # Verify guest exists
@@ -251,6 +261,7 @@ async def booking_update(
     num_guests: int | None = None,
     total_price: str | None = None,
     special_requests: str | None = None,
+    user_id: str | None = None,
 ) -> dict:
     """Update an existing booking (modify dates, status, or details).
 
@@ -262,6 +273,7 @@ async def booking_update(
         num_guests: Updated number of guests
         total_price: Updated total price
         special_requests: Updated special requests
+        user_id: UUID of the current user (verifies property ownership)
 
     Returns:
         Dict with updated booking details, or error if validation fails.
@@ -284,6 +296,8 @@ async def booking_update(
             )
             booking = result.scalar_one_or_none()
             if booking is None:
+                return {"error": f"Booking '{booking_id}' not found.", "booking": None}
+            if user_id and booking.property and str(booking.property.owner_id) != user_id:
                 return {"error": f"Booking '{booking_id}' not found.", "booking": None}
 
             # Determine final dates for conflict check

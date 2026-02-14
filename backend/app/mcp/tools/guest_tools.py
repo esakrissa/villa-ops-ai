@@ -1,6 +1,7 @@
 """Guest lookup MCP tool."""
 
 import logging
+import uuid as uuid_mod
 
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -8,6 +9,7 @@ from sqlalchemy.orm import selectinload
 from app.mcp import get_session_factory, mcp
 from app.models.booking import Booking
 from app.models.guest import Guest
+from app.models.property import Property
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +20,7 @@ async def guest_lookup(
     email: str | None = None,
     include_bookings: bool = True,
     limit: int = 10,
+    user_id: str | None = None,
 ) -> dict:
     """Look up guests by name or email, optionally including their booking history.
 
@@ -26,6 +29,7 @@ async def guest_lookup(
         email: Fuzzy match on guest email
         include_bookings: Whether to include each guest's booking history (default True)
         limit: Maximum number of guests returned (default 10)
+        user_id: UUID of the current user (filters to guests with bookings at their properties)
 
     Returns:
         Dict with guests list (each with optional bookings), total count, and query filters.
@@ -34,6 +38,16 @@ async def guest_lookup(
         session_factory = get_session_factory()
         async with session_factory() as session:
             query = select(Guest)
+
+            # Filter to guests who have bookings at the user's properties
+            if user_id:
+                query = (
+                    query
+                    .join(Booking, Guest.id == Booking.guest_id)
+                    .join(Property, Booking.property_id == Property.id)
+                    .where(Property.owner_id == uuid_mod.UUID(user_id))
+                    .distinct()
+                )
 
             if include_bookings:
                 query = query.options(
@@ -49,6 +63,9 @@ async def guest_lookup(
             result = await session.execute(query)
             guests = list(result.scalars().all())
 
+            # Filter bookings to only show those at user's properties
+            owner_uuid = uuid_mod.UUID(user_id) if user_id else None
+
             def serialize_guest(g):
                 data = {
                     "id": str(g.id),
@@ -59,6 +76,12 @@ async def guest_lookup(
                     "notes": g.notes,
                 }
                 if include_bookings and g.bookings:
+                    bookings = g.bookings
+                    if owner_uuid:
+                        bookings = [
+                            b for b in bookings
+                            if b.property and b.property.owner_id == owner_uuid
+                        ]
                     data["bookings"] = [
                         {
                             "id": str(b.id),
@@ -68,7 +91,7 @@ async def guest_lookup(
                             "status": b.status,
                             "total_price": str(b.total_price) if b.total_price else None,
                         }
-                        for b in g.bookings
+                        for b in bookings
                     ]
                 elif include_bookings:
                     data["bookings"] = []
