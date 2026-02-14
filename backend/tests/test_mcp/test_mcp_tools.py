@@ -82,6 +82,24 @@ async def mcp_owner(db_session: AsyncSession) -> User:
 
 
 @pytest_asyncio.fixture
+async def mcp_owner2(db_session: AsyncSession) -> User:
+    """Create a second owner for isolation tests."""
+    from app.auth.passwords import hash_password
+
+    user = User(
+        email=f"mcp-owner2-{uuid.uuid4().hex[:8]}@test.com",
+        hashed_password=hash_password("testpass"),
+        name="MCP Test Owner 2",
+        auth_provider="local",
+        is_active=True,
+        role="manager",
+    )
+    db_session.add(user)
+    await db_session.flush()
+    return user
+
+
+@pytest_asyncio.fixture
 async def mcp_property(db_session: AsyncSession, mcp_owner: User) -> Property:
     """Create a test property for MCP tool tests."""
     prop = Property(
@@ -99,9 +117,10 @@ async def mcp_property(db_session: AsyncSession, mcp_owner: User) -> Property:
 
 
 @pytest_asyncio.fixture
-async def mcp_guest(db_session: AsyncSession) -> Guest:
-    """Create a test guest for MCP tool tests."""
+async def mcp_guest(db_session: AsyncSession, mcp_owner: User) -> Guest:
+    """Create a test guest for MCP tool tests (owned by mcp_owner)."""
     guest = Guest(
+        owner_id=mcp_owner.id,
         name="Sarah Chen",
         email=f"sarah-{uuid.uuid4().hex[:8]}@test.com",
         phone="+61400111222",
@@ -250,47 +269,65 @@ class TestBookingAnalytics:
 
 
 class TestGuestLookup:
-    async def test_lookup_by_name(self, mcp_guest):
+    async def test_lookup_by_name(self, mcp_guest, mcp_owner):
         from app.mcp.tools.guest_tools import guest_lookup
 
-        result = await guest_lookup(name="Sarah")
+        result = await guest_lookup(name="Sarah", user_id=str(mcp_owner.id))
         assert "guests" in result
         assert result["total"] >= 1
         names = [g["name"] for g in result["guests"]]
         assert any("Sarah" in n for n in names)
 
-    async def test_lookup_by_email(self, mcp_guest):
+    async def test_lookup_by_email(self, mcp_guest, mcp_owner):
         from app.mcp.tools.guest_tools import guest_lookup
 
-        result = await guest_lookup(email=mcp_guest.email)
+        result = await guest_lookup(email=mcp_guest.email, user_id=str(mcp_owner.id))
         assert result["total"] >= 1
         emails = [g["email"] for g in result["guests"]]
         assert mcp_guest.email in emails
 
-    async def test_lookup_with_owner_fallback(self, mcp_owner, db_session):
-        """New guest with no bookings should be found via global fallback."""
+    async def test_lookup_requires_user_id(self):
+        from app.mcp.tools.guest_tools import guest_lookup
+
+        result = await guest_lookup(name="Sarah")
+        assert "error" in result
+        assert "user_id is required" in result["error"]
+
+    async def test_lookup_no_bookings_still_found(self, mcp_owner):
+        """New guest with no bookings should be found via owner_id filter."""
         from app.mcp.tools.guest_tools import guest_create, guest_lookup
 
         # Create a new guest (no bookings yet)
         create_result = await guest_create(
-            name="New Guest Fallback",
-            email=f"fallback-{uuid.uuid4().hex[:8]}@test.com",
+            name="New Guest No Bookings",
+            email=f"nobookings-{uuid.uuid4().hex[:8]}@test.com",
+            user_id=str(mcp_owner.id),
         )
         assert create_result["guest"] is not None
 
-        # Lookup with owner filter — should fallback to global search
+        # Lookup — should find via owner_id, no join needed
         result = await guest_lookup(
-            name="New Guest Fallback",
+            name="New Guest No Bookings",
             user_id=str(mcp_owner.id),
         )
         assert result["total"] >= 1
         names = [g["name"] for g in result["guests"]]
-        assert "New Guest Fallback" in names
+        assert "New Guest No Bookings" in names
 
-    async def test_lookup_not_found(self):
+    async def test_lookup_isolation(self, mcp_owner, mcp_owner2, mcp_guest):
+        """Owner 2 should NOT see owner 1's guests."""
         from app.mcp.tools.guest_tools import guest_lookup
 
-        result = await guest_lookup(name="Nonexistent Person 999")
+        result = await guest_lookup(
+            name="Sarah",
+            user_id=str(mcp_owner2.id),
+        )
+        assert result["total"] == 0
+
+    async def test_lookup_not_found(self, mcp_owner):
+        from app.mcp.tools.guest_tools import guest_lookup
+
+        result = await guest_lookup(name="Nonexistent Person 999", user_id=str(mcp_owner.id))
         assert result["total"] == 0
         assert result["guests"] == []
 
@@ -314,7 +351,7 @@ class TestGuestLookup:
 
 
 class TestGuestCreate:
-    async def test_create_new_guest(self):
+    async def test_create_new_guest(self, mcp_owner):
         from app.mcp.tools.guest_tools import guest_create
 
         result = await guest_create(
@@ -322,32 +359,58 @@ class TestGuestCreate:
             email=f"john-{uuid.uuid4().hex[:8]}@test.com",
             phone="+1234567890",
             nationality="American",
+            user_id=str(mcp_owner.id),
         )
         assert result["guest"] is not None
         assert result["already_existed"] is False
         assert result["guest"]["name"] == "John Smith"
         assert result["guest"]["phone"] == "+1234567890"
 
-    async def test_create_duplicate_email(self, mcp_guest):
+    async def test_create_duplicate_email_same_owner(self, mcp_guest, mcp_owner):
         from app.mcp.tools.guest_tools import guest_create
 
         result = await guest_create(
             name="Another Person",
             email=mcp_guest.email,
+            user_id=str(mcp_owner.id),
         )
         assert result["already_existed"] is True
         assert result["guest"]["id"] == str(mcp_guest.id)
 
-    async def test_create_missing_name(self):
+    async def test_create_same_email_different_owner(self, mcp_guest, mcp_owner2):
+        """Same email for a different owner should create a new guest."""
         from app.mcp.tools.guest_tools import guest_create
 
-        result = await guest_create(name="", email="test@test.com")
+        result = await guest_create(
+            name="Sarah Clone",
+            email=mcp_guest.email,
+            user_id=str(mcp_owner2.id),
+        )
+        assert result["already_existed"] is False
+        assert result["guest"] is not None
+        # Different guest ID from original
+        assert result["guest"]["id"] != str(mcp_guest.id)
+
+    async def test_create_requires_user_id(self):
+        from app.mcp.tools.guest_tools import guest_create
+
+        result = await guest_create(
+            name="Test",
+            email="test@test.com",
+        )
+        assert "error" in result
+        assert "user_id is required" in result["error"]
+
+    async def test_create_missing_name(self, mcp_owner):
+        from app.mcp.tools.guest_tools import guest_create
+
+        result = await guest_create(name="", email="test@test.com", user_id=str(mcp_owner.id))
         assert "error" in result
 
-    async def test_create_missing_email(self):
+    async def test_create_missing_email(self, mcp_owner):
         from app.mcp.tools.guest_tools import guest_create
 
-        result = await guest_create(name="Test", email="")
+        result = await guest_create(name="Test", email="", user_id=str(mcp_owner.id))
         assert "error" in result
 
 
@@ -357,48 +420,270 @@ class TestGuestCreate:
 
 
 class TestGuestUpdate:
-    async def test_update_name(self, mcp_guest):
+    async def test_update_name(self, mcp_guest, mcp_owner):
         from app.mcp.tools.guest_tools import guest_update
 
         result = await guest_update(
             guest_id=str(mcp_guest.id),
             name="Sarah Chen-Updated",
+            user_id=str(mcp_owner.id),
         )
         assert result["guest"] is not None
         assert result["guest"]["name"] == "Sarah Chen-Updated"
 
-    async def test_update_invalid_id(self):
+    async def test_update_requires_user_id(self, mcp_guest):
         from app.mcp.tools.guest_tools import guest_update
 
-        result = await guest_update(guest_id="not-a-uuid", name="Test")
+        result = await guest_update(guest_id=str(mcp_guest.id), name="Test")
+        assert "error" in result
+        assert "user_id is required" in result["error"]
+
+    async def test_update_wrong_owner(self, mcp_guest, mcp_owner2):
+        from app.mcp.tools.guest_tools import guest_update
+
+        result = await guest_update(
+            guest_id=str(mcp_guest.id),
+            name="Hacked",
+            user_id=str(mcp_owner2.id),
+        )
+        assert "error" in result
+        assert "not found or not owned" in result["error"]
+
+    async def test_update_invalid_id(self, mcp_owner):
+        from app.mcp.tools.guest_tools import guest_update
+
+        result = await guest_update(guest_id="not-a-uuid", name="Test", user_id=str(mcp_owner.id))
         assert "error" in result
 
-    async def test_update_not_found(self):
+    async def test_update_not_found(self, mcp_owner):
         from app.mcp.tools.guest_tools import guest_update
 
-        result = await guest_update(guest_id=str(uuid.uuid4()), name="Test")
+        result = await guest_update(
+            guest_id=str(uuid.uuid4()),
+            name="Test",
+            user_id=str(mcp_owner.id),
+        )
         assert "error" in result
         assert "not found" in result["error"]
 
-    async def test_update_no_fields(self, mcp_guest):
+    async def test_update_no_fields(self, mcp_guest, mcp_owner):
         from app.mcp.tools.guest_tools import guest_update
 
-        result = await guest_update(guest_id=str(mcp_guest.id))
+        result = await guest_update(guest_id=str(mcp_guest.id), user_id=str(mcp_owner.id))
         assert "error" in result
         assert "At least one field" in result["error"]
 
-    async def test_update_email_uniqueness(self, mcp_guest, db_session):
+    async def test_update_email_uniqueness(self, mcp_guest, mcp_owner):
         from app.mcp.tools.guest_tools import guest_create, guest_update
 
-        # Create another guest
+        # Create another guest for the same owner
         other_email = f"other-{uuid.uuid4().hex[:8]}@test.com"
-        create_result = await guest_create(name="Other", email=other_email)
+        create_result = await guest_create(
+            name="Other",
+            email=other_email,
+            user_id=str(mcp_owner.id),
+        )
         other_id = create_result["guest"]["id"]
 
         # Try to update other guest's email to mcp_guest's email
-        result = await guest_update(guest_id=other_id, email=mcp_guest.email)
+        result = await guest_update(
+            guest_id=other_id,
+            email=mcp_guest.email,
+            user_id=str(mcp_owner.id),
+        )
         assert "error" in result
         assert "already used" in result["error"]
+
+
+# ---------------------------------------------------------------------------
+# property_create tests
+# ---------------------------------------------------------------------------
+
+
+class TestPropertyCreate:
+    async def test_create_basic(self, mcp_owner):
+        from app.mcp.tools.property_tools import property_create
+
+        result = await property_create(
+            name="Villa Sunset",
+            property_type="villa",
+            location="Seminyak, Bali",
+            user_id=str(mcp_owner.id),
+        )
+        assert result["property"] is not None
+        assert result["property"]["name"] == "Villa Sunset"
+        assert result["property"]["property_type"] == "villa"
+        assert result["property"]["location"] == "Seminyak, Bali"
+        assert result["property"]["status"] == "active"
+
+    async def test_create_full(self, mcp_owner):
+        from app.mcp.tools.property_tools import property_create
+
+        result = await property_create(
+            name="Hotel Paradise",
+            property_type="hotel",
+            location="Ubud, Bali",
+            description="A luxurious boutique hotel",
+            max_guests=20,
+            base_price_per_night="350.00",
+            amenities="pool,wifi,spa,restaurant",
+            user_id=str(mcp_owner.id),
+        )
+        assert result["property"] is not None
+        assert result["property"]["base_price_per_night"] == "350.00"
+        assert "pool" in result["property"]["amenities"]
+        assert result["property"]["max_guests"] == 20
+
+    async def test_create_requires_user_id(self):
+        from app.mcp.tools.property_tools import property_create
+
+        result = await property_create(name="Test", property_type="villa")
+        assert "error" in result
+        assert "user_id is required" in result["error"]
+
+    async def test_create_invalid_type(self, mcp_owner):
+        from app.mcp.tools.property_tools import property_create
+
+        result = await property_create(
+            name="Test",
+            property_type="castle",
+            user_id=str(mcp_owner.id),
+        )
+        assert "error" in result
+        assert "Invalid property_type" in result["error"]
+
+    async def test_create_invalid_price(self, mcp_owner):
+        from app.mcp.tools.property_tools import property_create
+
+        result = await property_create(
+            name="Test",
+            property_type="villa",
+            base_price_per_night="not-a-number",
+            user_id=str(mcp_owner.id),
+        )
+        assert "error" in result
+        assert "Invalid price" in result["error"]
+
+    async def test_create_missing_name(self, mcp_owner):
+        from app.mcp.tools.property_tools import property_create
+
+        result = await property_create(
+            name="",
+            property_type="villa",
+            user_id=str(mcp_owner.id),
+        )
+        assert "error" in result
+        assert "name is required" in result["error"]
+
+
+# ---------------------------------------------------------------------------
+# property_update tests
+# ---------------------------------------------------------------------------
+
+
+class TestPropertyUpdate:
+    async def test_update_name(self, mcp_property, mcp_owner):
+        from app.mcp.tools.property_tools import property_update
+
+        result = await property_update(
+            property_id=str(mcp_property.id),
+            name="Villa Canggu Updated",
+            user_id=str(mcp_owner.id),
+        )
+        assert result["property"] is not None
+        assert result["property"]["name"] == "Villa Canggu Updated"
+
+    async def test_update_price(self, mcp_property, mcp_owner):
+        from app.mcp.tools.property_tools import property_update
+
+        result = await property_update(
+            property_id=str(mcp_property.id),
+            base_price_per_night="350.00",
+            user_id=str(mcp_owner.id),
+        )
+        assert result["property"] is not None
+        assert result["property"]["base_price_per_night"] == "350.00"
+
+    async def test_update_status(self, mcp_property, mcp_owner):
+        from app.mcp.tools.property_tools import property_update
+
+        result = await property_update(
+            property_id=str(mcp_property.id),
+            status="maintenance",
+            user_id=str(mcp_owner.id),
+        )
+        assert result["property"] is not None
+        assert result["property"]["status"] == "maintenance"
+
+    async def test_update_amenities(self, mcp_property, mcp_owner):
+        from app.mcp.tools.property_tools import property_update
+
+        result = await property_update(
+            property_id=str(mcp_property.id),
+            amenities="pool,wifi,spa",
+            user_id=str(mcp_owner.id),
+        )
+        assert result["property"] is not None
+        assert "pool" in result["property"]["amenities"]
+        assert "spa" in result["property"]["amenities"]
+
+    async def test_update_requires_user_id(self, mcp_property):
+        from app.mcp.tools.property_tools import property_update
+
+        result = await property_update(
+            property_id=str(mcp_property.id),
+            name="Test",
+        )
+        assert "error" in result
+        assert "user_id is required" in result["error"]
+
+    async def test_update_wrong_owner(self, mcp_property, mcp_owner2):
+        from app.mcp.tools.property_tools import property_update
+
+        result = await property_update(
+            property_id=str(mcp_property.id),
+            name="Stolen Villa",
+            user_id=str(mcp_owner2.id),
+        )
+        assert "error" in result
+        assert "not found or not owned" in result["error"]
+
+    async def test_update_no_fields(self, mcp_property, mcp_owner):
+        from app.mcp.tools.property_tools import property_update
+
+        result = await property_update(
+            property_id=str(mcp_property.id),
+            user_id=str(mcp_owner.id),
+        )
+        assert "error" in result
+        assert "At least one field" in result["error"]
+
+    async def test_update_invalid_status(self, mcp_property, mcp_owner):
+        from app.mcp.tools.property_tools import property_update
+
+        result = await property_update(
+            property_id=str(mcp_property.id),
+            status="demolished",
+            user_id=str(mcp_owner.id),
+        )
+        assert "error" in result
+        assert "Invalid status" in result["error"]
+
+
+# ---------------------------------------------------------------------------
+# property_list tests
+# ---------------------------------------------------------------------------
+
+
+class TestPropertyList:
+    async def test_list_properties(self, mcp_property, mcp_owner):
+        from app.mcp.tools.property_tools import property_list
+
+        result = await property_list(user_id=str(mcp_owner.id))
+        assert "properties" in result
+        assert result["total"] >= 1
+        names = [p["name"] for p in result["properties"]]
+        assert mcp_property.name in names
 
 
 # ---------------------------------------------------------------------------
@@ -524,3 +809,153 @@ class TestSendNotification:
         )
         assert result["status"] == "simulated"
         assert result["notification"]["recipient_email"] == mcp_guest.email
+
+
+# ---------------------------------------------------------------------------
+# property_delete tests
+# ---------------------------------------------------------------------------
+
+
+class TestPropertyDelete:
+    async def test_delete_property_with_bookings(
+        self, db_session, mcp_property, mcp_bookings, mcp_owner
+    ):
+        from app.mcp.tools.property_tools import property_delete
+
+        prop_id = str(mcp_property.id)
+        result = await property_delete(property_id=prop_id, user_id=str(mcp_owner.id))
+        assert result["deleted"] is True
+        assert result["bookings_deleted"] == len(mcp_bookings)
+        assert result["property_name"] == mcp_property.name
+
+        # Verify the property is actually gone
+        from sqlalchemy import select
+
+        check = await db_session.execute(
+            select(Property).where(Property.id == mcp_property.id)
+        )
+        assert check.scalar_one_or_none() is None
+
+    async def test_delete_property_no_bookings(self, db_session, mcp_owner):
+        from app.mcp.tools.property_tools import property_create, property_delete
+
+        # Create a standalone property
+        create_result = await property_create(
+            name="Temp Villa",
+            property_type="villa",
+            user_id=str(mcp_owner.id),
+        )
+        prop_id = create_result["property"]["id"]
+
+        result = await property_delete(property_id=prop_id, user_id=str(mcp_owner.id))
+        assert result["deleted"] is True
+        assert result["bookings_deleted"] == 0
+
+    async def test_delete_wrong_owner(self, mcp_property, mcp_owner2):
+        from app.mcp.tools.property_tools import property_delete
+
+        result = await property_delete(
+            property_id=str(mcp_property.id),
+            user_id=str(mcp_owner2.id),
+        )
+        assert result["deleted"] is False
+        assert "not found or not owned" in result["error"]
+
+    async def test_delete_requires_user_id(self, mcp_property):
+        from app.mcp.tools.property_tools import property_delete
+
+        result = await property_delete(property_id=str(mcp_property.id))
+        assert result["deleted"] is False
+        assert "user_id is required" in result["error"]
+
+    async def test_delete_invalid_uuid(self, mcp_owner):
+        from app.mcp.tools.property_tools import property_delete
+
+        result = await property_delete(property_id="not-a-uuid", user_id=str(mcp_owner.id))
+        assert result["deleted"] is False
+        assert "Invalid property_id" in result["error"]
+
+    async def test_delete_not_found(self, mcp_owner):
+        from app.mcp.tools.property_tools import property_delete
+
+        result = await property_delete(
+            property_id=str(uuid.uuid4()),
+            user_id=str(mcp_owner.id),
+        )
+        assert result["deleted"] is False
+        assert "not found" in result["error"]
+
+
+# ---------------------------------------------------------------------------
+# guest_delete tests
+# ---------------------------------------------------------------------------
+
+
+class TestGuestDelete:
+    async def test_delete_guest_with_bookings(
+        self, db_session, mcp_guest, mcp_bookings, mcp_owner
+    ):
+        from app.mcp.tools.guest_tools import guest_delete
+
+        guest_id = str(mcp_guest.id)
+        result = await guest_delete(guest_id=guest_id, user_id=str(mcp_owner.id))
+        assert result["deleted"] is True
+        assert result["bookings_deleted"] == len(mcp_bookings)
+        assert result["guest_name"] == mcp_guest.name
+
+        # Verify the guest is actually gone
+        from sqlalchemy import select
+
+        check = await db_session.execute(
+            select(Guest).where(Guest.id == mcp_guest.id)
+        )
+        assert check.scalar_one_or_none() is None
+
+    async def test_delete_guest_no_bookings(self, mcp_owner):
+        from app.mcp.tools.guest_tools import guest_create, guest_delete
+
+        # Create a standalone guest
+        create_result = await guest_create(
+            name="Temp Guest",
+            email=f"temp-{uuid.uuid4().hex[:8]}@test.com",
+            user_id=str(mcp_owner.id),
+        )
+        guest_id = create_result["guest"]["id"]
+
+        result = await guest_delete(guest_id=guest_id, user_id=str(mcp_owner.id))
+        assert result["deleted"] is True
+        assert result["bookings_deleted"] == 0
+
+    async def test_delete_wrong_owner(self, mcp_guest, mcp_owner2):
+        from app.mcp.tools.guest_tools import guest_delete
+
+        result = await guest_delete(
+            guest_id=str(mcp_guest.id),
+            user_id=str(mcp_owner2.id),
+        )
+        assert result["deleted"] is False
+        assert "not found or not owned" in result["error"]
+
+    async def test_delete_requires_user_id(self, mcp_guest):
+        from app.mcp.tools.guest_tools import guest_delete
+
+        result = await guest_delete(guest_id=str(mcp_guest.id))
+        assert result["deleted"] is False
+        assert "user_id is required" in result["error"]
+
+    async def test_delete_invalid_uuid(self, mcp_owner):
+        from app.mcp.tools.guest_tools import guest_delete
+
+        result = await guest_delete(guest_id="not-a-uuid", user_id=str(mcp_owner.id))
+        assert result["deleted"] is False
+        assert "Invalid guest_id" in result["error"]
+
+    async def test_delete_not_found(self, mcp_owner):
+        from app.mcp.tools.guest_tools import guest_delete
+
+        result = await guest_delete(
+            guest_id=str(uuid.uuid4()),
+            user_id=str(mcp_owner.id),
+        )
+        assert result["deleted"] is False
+        assert "not found" in result["error"]

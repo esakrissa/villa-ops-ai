@@ -18,6 +18,12 @@ class ChatRequest(BaseModel):
     conversation_id: uuid.UUID | None = None  # None = start new conversation
 
 
+class ResumeRequest(BaseModel):
+    """Request to resume a paused conversation (HITL confirmation)."""
+
+    action: str = Field(..., pattern="^(approve|cancel)$")  # "approve" or "cancel"
+
+
 # ---------------------------------------------------------------------------
 # Response schemas
 # ---------------------------------------------------------------------------

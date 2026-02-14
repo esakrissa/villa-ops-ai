@@ -1,7 +1,14 @@
 """VillaOps AI — FastAPI application entry point."""
 
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+
+# Configure root logger so all app.* loggers output to stderr (captured by Docker).
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
