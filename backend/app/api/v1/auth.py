@@ -3,8 +3,6 @@
 import logging
 import uuid
 
-logger = logging.getLogger(__name__)
-
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
 from jose import JWTError
@@ -27,6 +25,8 @@ from app.schemas.auth import (
     TokenResponse,
     UserResponse,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
