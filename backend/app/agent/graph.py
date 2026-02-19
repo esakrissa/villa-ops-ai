@@ -62,11 +62,25 @@ async def create_agent(checkpointer=None):
     tools = await load_mcp_tools(mcp_urls)
     logger.info("Loaded %d MCP tools", len(tools))
 
+    # Build fallback model list for LiteLLM — if the primary model is
+    # unreachable, requests are retried against the next available provider.
+    fallback_models = []
+    if settings.anthropic_api_key:
+        fallback_models.append("anthropic/claude-sonnet-4-20250514")
+    if settings.openai_api_key:
+        fallback_models.append("openai/gpt-4o-mini")
+
+    model_kwargs = {}
+    if fallback_models:
+        model_kwargs["fallbacks"] = fallback_models
+        logger.info("LiteLLM fallbacks configured: %s", fallback_models)
+
     # Create LLM via LiteLLM (supports Gemini, Claude, GPT via unified API)
     llm = ChatLiteLLM(
         model=settings.default_llm_model,
         temperature=1.0,
         max_tokens=4096,
+        **model_kwargs,
     )
 
     # Build the graph

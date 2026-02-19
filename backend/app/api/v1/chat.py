@@ -9,6 +9,7 @@ DELETE /api/v1/chat/conversations/{id}       — Delete a conversation
 
 import json
 import logging
+import time
 import uuid
 from decimal import Decimal
 
@@ -48,6 +49,10 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/chat", tags=["chat"])
 
+# Guard against concurrent HITL resumes for the same conversation.
+# Prevents double-execution if the client retries the resume request.
+_active_resumes: set[uuid.UUID] = set()
+
 
 async def _stream_agent(
     agent,
@@ -71,6 +76,11 @@ async def _stream_agent(
     ``confirmation`` SSE event so the frontend can show a ConfirmationCard.
     """
     async with async_session_factory() as session:
+        stream_ok = False
+        start_time = time.monotonic()
+        total_input_tokens = 0
+        total_output_tokens = 0
+
         try:
             if new_messages is None:
                 new_messages = []
@@ -137,6 +147,13 @@ async def _stream_agent(
                         node_msgs = node_output.get("messages", [])
                         for msg in node_msgs:
                             new_messages.append(msg)
+
+                            # Extract token usage from AIMessage response metadata
+                            if isinstance(msg, AIMessage):
+                                usage_meta = (msg.response_metadata or {}).get("token_usage") or {}
+                                total_input_tokens += usage_meta.get("prompt_tokens", 0)
+                                total_output_tokens += usage_meta.get("completion_tokens", 0)
+
                             if isinstance(msg, ToolMessage):
                                 yield json.dumps({
                                     "type": "tool_result",
@@ -157,36 +174,45 @@ async def _stream_agent(
                                     "content": content,
                                 })
 
-            # Save all new messages to DB
-            if new_messages:
-                await save_messages(session, conversation_id, new_messages, model_used=model_name)
-                await session.commit()
-
-            # Record LLM usage for billing/plan gating
-            usage_record = LLMUsage(
-                user_id=user_id,
-                model=model_name,
-                provider=model_name.split("/")[0],
-                input_tokens=0,
-                output_tokens=0,
-                cost=Decimal("0"),
-                latency_ms=0,
-                cached=False,
-            )
-            session.add(usage_record)
-            await session.commit()
-
-            # Send completion event
-            yield json.dumps({
-                "type": "done",
-                "conversation_id": str(conversation_id),
-            })
+            stream_ok = True
 
         except Exception:
             logger.exception("Error during chat streaming for conversation %s", conversation_id)
             yield json.dumps({
                 "type": "error",
                 "message": "An error occurred while processing your request.",
+            })
+
+        finally:
+            # Always persist messages and record usage, even after errors
+            latency_ms = int((time.monotonic() - start_time) * 1000)
+
+            try:
+                if new_messages:
+                    await save_messages(session, conversation_id, new_messages, model_used=model_name)
+                    await session.commit()
+
+                # Record LLM usage for billing/plan gating
+                usage_record = LLMUsage(
+                    user_id=user_id,
+                    model=model_name,
+                    provider=model_name.split("/")[0],
+                    input_tokens=total_input_tokens,
+                    output_tokens=total_output_tokens,
+                    cost=Decimal("0"),
+                    latency_ms=latency_ms,
+                    cached=False,
+                )
+                session.add(usage_record)
+                await session.commit()
+            except Exception:
+                logger.exception("Failed to persist messages/usage for conversation %s", conversation_id)
+
+            # Always send a done event so the client exits its loading state
+            yield json.dumps({
+                "type": "done",
+                "conversation_id": str(conversation_id),
+                "ok": stream_ok,
             })
 
 
@@ -271,7 +297,15 @@ async def resume_conversation(
     model_name = settings.default_llm_model
     logger.info("HITL resume action=%s [conversation=%s]", body.action, conversation_id)
 
+    # Idempotency guard — prevent concurrent resumes for the same conversation
+    if conversation_id in _active_resumes:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A resume is already in progress for this conversation.",
+        )
+
     async def event_generator():
+        _active_resumes.add(conversation_id)
         db_uri = settings.psycopg_database_url
         try:
             async with AsyncPostgresSaver.from_conn_string(db_uri) as checkpointer:
@@ -293,6 +327,8 @@ async def resume_conversation(
                 "type": "error",
                 "message": "An error occurred while resuming the conversation.",
             })
+        finally:
+            _active_resumes.discard(conversation_id)
 
     return EventSourceResponse(event_generator())
 

@@ -83,8 +83,10 @@ class TestAgentToolSelection:
         result = await agent.ainvoke({
             "messages": [(
                 "user",
-                "Use guest_lookup to find Sarah Chen's guest ID, then use the "
-                "send_notification tool to send her a check_in_reminder notification."
+                "Use the send_notification tool right now to send a "
+                "check_in_reminder notification to guest ID "
+                "00000000-0000-0000-0000-000000000001. "
+                "Do not look up the guest first, just call send_notification directly."
             )]
         })
         tool_names = _extract_tool_names(result["messages"])
