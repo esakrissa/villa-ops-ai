@@ -1,6 +1,9 @@
 """Auth API router — register, login, refresh, me, Google OAuth, GitHub OAuth."""
 
+import logging
 import uuid
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse
@@ -236,9 +239,10 @@ async def google_callback(request: Request, db: AsyncSession = Depends(get_db)) 
     try:
         token = await oauth.google.authorize_access_token(request)
     except Exception as exc:
+        logger.warning("Google OAuth callback failed: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Google OAuth failed: {exc}",
+            detail="Google authentication failed. Please try again.",
         ) from None
 
     user_info = await get_google_user_info(token)
@@ -279,9 +283,10 @@ async def github_callback(request: Request, db: AsyncSession = Depends(get_db)) 
     try:
         token = await oauth.github.authorize_access_token(request)
     except Exception as exc:
+        logger.warning("GitHub OAuth callback failed: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"GitHub OAuth failed: {exc}",
+            detail="GitHub authentication failed. Please try again.",
         ) from None
 
     user_info = await get_github_user_info(oauth.github, token)

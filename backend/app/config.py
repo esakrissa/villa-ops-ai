@@ -78,6 +78,13 @@ class Settings(BaseSettings):
     ]
 
     @model_validator(mode="after")
+    def _ensure_frontend_in_cors(self) -> "Settings":
+        """Ensure the configured frontend_url is always in cors_origins."""
+        if self.frontend_url and self.frontend_url not in self.cors_origins:
+            self.cors_origins.append(self.frontend_url)
+        return self
+
+    @model_validator(mode="after")
     def _validate_secrets(self) -> "Settings":
         """Reject insecure JWT secret in production and warn in development."""
         if self.jwt_secret_key == _INSECURE_JWT_DEFAULT:

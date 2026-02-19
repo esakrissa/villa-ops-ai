@@ -7,6 +7,7 @@ external MCP server (e.g. Exa) is unreachable, the agent continues with
 the tools that loaded successfully.
 """
 
+import asyncio
 import logging
 from typing import Any
 
@@ -14,6 +15,9 @@ from langchain_core.tools import StructuredTool
 from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 from pydantic import BaseModel, Field, create_model
+
+# Timeout (seconds) for individual MCP tool calls to prevent hanging streams
+MCP_TOOL_CALL_TIMEOUT = 30
 
 logger = logging.getLogger(__name__)
 
@@ -47,13 +51,22 @@ def _build_args_model(tool_name: str, input_schema: dict) -> type[BaseModel]:
 
 
 async def _call_mcp_tool(mcp_url: str, tool_name: str, **kwargs: Any) -> str:
-    """Call an MCP tool via a fresh Streamable HTTP connection."""
+    """Call an MCP tool via a fresh Streamable HTTP connection.
+
+    Enforces a timeout to prevent a single tool call from hanging the
+    entire SSE stream indefinitely.
+    """
     # Filter out None values — MCP tools treat missing params as unset
     args = {k: v for k, v in kwargs.items() if v is not None}
-    async with streamable_http_client(mcp_url) as (read, write, _), ClientSession(read, write) as session:
-        await session.initialize()
-        result = await session.call_tool(tool_name, args)
-        return result.content[0].text
+    try:
+        async with asyncio.timeout(MCP_TOOL_CALL_TIMEOUT):
+            async with streamable_http_client(mcp_url) as (read, write, _), ClientSession(read, write) as session:
+                await session.initialize()
+                result = await session.call_tool(tool_name, args)
+                return result.content[0].text
+    except TimeoutError:
+        logger.error("MCP tool '%s' timed out after %ds", tool_name, MCP_TOOL_CALL_TIMEOUT)
+        return f"Error: Tool '{tool_name}' timed out after {MCP_TOOL_CALL_TIMEOUT}s. Please try again."
 
 
 async def _load_tools_from_url(mcp_url: str) -> list[StructuredTool]:
