@@ -117,7 +117,7 @@ export function ToolSteps({
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="group flex items-center gap-2 rounded-full border border-gray-200 bg-white py-1 pl-2 pr-3 text-[13px] text-gray-600 transition-colors hover:border-gray-300 hover:text-ink"
+        className="group flex items-center gap-2 h-7 rounded-full border border-gray-200 bg-white pl-2 pr-3 text-[13px] text-gray-600 transition-colors hover:border-gray-300 hover:text-ink"
       >
         <SparkIcon className={`h-3.5 w-3.5 ${running ? "text-ink" : "text-gray-500"}`} />
         {running ? (

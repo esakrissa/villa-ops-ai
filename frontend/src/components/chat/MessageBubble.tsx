@@ -17,7 +17,7 @@ interface MessageBubbleProps {
 
 function Thinking() {
   return (
-    <div className="py-1.5">
+    <div className="flex h-7 items-center">
       <span className="shimmer-text text-[14px] font-medium">Thinking</span>
     </div>
   );
@@ -117,11 +117,11 @@ export function MessageBubble({ message, showAvatar = true, onResumeConversation
 
   return (
     <div className="group/msg flex gap-3.5">
-      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-start justify-center pt-0.5 text-ink">
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center text-ink">
         {showAvatar && <LogoMark className="h-5 w-5" />}
       </span>
 
-      <div className="min-w-0 flex-1 pt-0.5">
+      <div className="min-w-0 flex-1">
         {hasToolCalls && (
           <ToolSteps toolCalls={message.toolCalls!} toolResults={message.toolResults} isStreaming={message.isStreaming} />
         )}
@@ -141,7 +141,7 @@ export function MessageBubble({ message, showAvatar = true, onResumeConversation
         {(isThinking || awaitingAnswer) && <Thinking />}
 
         {hasContent && (
-          <div className="text-[15px] leading-[1.7] text-gray-800">
+          <div className="pt-px text-[15px] leading-[1.7] text-gray-800">
             <Markdown components={markdownComponents}>{message.content}</Markdown>
             {message.isStreaming && (
               <span className="ml-0.5 inline-block h-[1.05em] w-[7px] translate-y-[3px] animate-pulse rounded-[2px] bg-lime" />
