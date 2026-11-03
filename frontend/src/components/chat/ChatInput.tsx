@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { ArrowUpIcon, SparkIcon, StopIcon } from "@/components/ui/icons";
+import { ToolsMenu } from "./ToolsMenu";
 
 interface ChatInputProps {
   onSend: (message: string) => void;
@@ -68,10 +69,7 @@ export function ChatInput({
               <SparkIcon className="h-3.5 w-3.5" />
               Gemini 3.5 Flash
             </span>
-            <span className="hidden items-center gap-1.5 rounded-full px-2 py-1 text-[12px] text-gray-500 sm:flex">
-              <span className="live-dot !h-1.5 !w-1.5" />
-              15 tools
-            </span>
+            <ToolsMenu />
           </div>
           {isLoading && onStop ? (
             <button

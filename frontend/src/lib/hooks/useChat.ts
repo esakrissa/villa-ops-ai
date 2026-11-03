@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef } from "react";
 import { API_BASE_URL, apiFetch } from "@/lib/api";
+import { readDisabledTools } from "./useAgentTools";
 
 // Tools that require HITL confirmation before execution
 const DESTRUCTIVE_TOOLS = new Set(["property_delete", "guest_delete"]);
@@ -112,6 +113,7 @@ export function useChat(): UseChatReturn {
           body: JSON.stringify({
             message,
             conversation_id: conversationId,
+            disabled_tools: readDisabledTools(),
           }),
           signal: abortRef.current.signal,
         });
@@ -389,7 +391,7 @@ export function useChat(): UseChatReturn {
               "Content-Type": "application/json",
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
-            body: JSON.stringify({ action }),
+            body: JSON.stringify({ action, disabled_tools: readDisabledTools() }),
             signal: abortRef.current.signal,
           },
         );

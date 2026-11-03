@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
-import { CheckIcon, ChevronIcon, SparkIcon } from "@/components/ui/icons";
+import { CheckIcon, ChevronIcon, CloseIcon, SparkIcon } from "@/components/ui/icons";
 import { summarizeArgs, toolLabel } from "@/lib/toolLabels";
 
 interface ToolCall {
@@ -14,6 +14,18 @@ function prettyResult(result: string): string {
     return JSON.stringify(JSON.parse(result), null, 2);
   } catch {
     return result;
+  }
+}
+
+/** Tool results that report failure (MCP error payloads or LangGraph tool errors). */
+function isErrorResult(result?: string): boolean {
+  if (!result) return false;
+  if (result.startsWith("Error:")) return true;
+  try {
+    const parsed = JSON.parse(result);
+    return !!parsed && typeof parsed === "object" && "error" in parsed && !!parsed.error;
+  } catch {
+    return false;
   }
 }
 
@@ -36,6 +48,7 @@ export function ToolCallCard({
   const [expanded, setExpanded] = useState(false);
   const contentId = useId();
   const pending = !!isStreaming && !result;
+  const failed = !pending && isErrorResult(result);
   const summary = summarizeArgs(args);
   const visibleArgs = Object.entries(args).filter(([k]) => k !== "user_id");
 
@@ -46,6 +59,10 @@ export function ToolCallCard({
       <span className="absolute left-0 top-[9px]">
         {pending ? (
           <Spinner />
+        ) : failed ? (
+          <span className="flex h-4 w-4 items-center justify-center rounded-full bg-gray-200 text-gray-500">
+            <CloseIcon className="h-2.5 w-2.5" />
+          </span>
         ) : (
           <span className="flex h-4 w-4 items-center justify-center rounded-full bg-ink text-cream">
             <CheckIcon className="h-2.5 w-2.5" />
@@ -60,7 +77,9 @@ export function ToolCallCard({
         aria-controls={contentId}
         className="group flex w-full items-center gap-2 rounded-lg py-1.5 pr-2 text-left"
       >
-        <span className={`shrink-0 text-[14px] ${pending ? "shimmer-text font-medium" : "text-ink"}`}>
+        <span
+          className={`shrink-0 text-[14px] ${pending ? "shimmer-text font-medium" : failed ? "text-gray-400 line-through decoration-gray-300" : "text-ink"}`}
+        >
           {toolLabel(name, pending)}
         </span>
         {summary && <span className="min-w-0 truncate text-[13px] text-gray-400">{summary}</span>}
@@ -75,7 +94,7 @@ export function ToolCallCard({
         <div id={contentId} className="mb-2 mt-1 overflow-hidden rounded-xl border border-gray-200 bg-white">
           <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2">
             <span className="font-mono text-[11px] text-gray-500">{name}</span>
-            <span className="eyebrow !text-[10px] text-gray-400">{pending ? "Running" : "Completed"}</span>
+            <span className="eyebrow !text-[10px] text-gray-400">{pending ? "Running" : failed ? "Failed" : "Completed"}</span>
           </div>
           {visibleArgs.length > 0 && (
             <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 px-3 py-2.5 text-[12px]">

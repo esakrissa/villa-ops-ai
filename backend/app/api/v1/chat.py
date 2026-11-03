@@ -24,6 +24,7 @@ from sse_starlette.sse import EventSourceResponse
 from starlette.requests import Request
 
 from app.agent import create_agent
+from app.agent.graph import list_agent_tools
 from app.agent.memory import (
     create_conversation,
     delete_conversation,
@@ -42,6 +43,7 @@ from app.models.conversation import Conversation
 from app.models.llm_usage import LLMUsage
 from app.models.user import User
 from app.schemas.chat import (
+    AgentToolResponse,
     ChatRequest,
     ConversationDetailResponse,
     ConversationResponse,
@@ -256,6 +258,7 @@ async def chat(
 
     user_id = user.id
     message_text = chat_request.message
+    disabled_tools = set(chat_request.disabled_tools)
     model_name = settings.default_llm_model
 
     async def event_generator():
@@ -269,7 +272,7 @@ async def chat(
             user_msg = HumanMessage(content=message_text)
             history.append(user_msg)
 
-            agent = await create_agent(checkpointer=checkpointer)
+            agent = await create_agent(checkpointer=checkpointer, disabled_tools=disabled_tools)
 
             config = {"configurable": {"thread_id": str(conversation_id)}}
             agent_input = {"messages": history, "user_id": str(user_id)}
@@ -360,7 +363,7 @@ async def resume_conversation(
         try:
             async with AsyncPostgresSaver.from_conn_string(db_uri) as checkpointer:
                 await checkpointer.setup()
-                agent = await create_agent(checkpointer=checkpointer)
+                agent = await create_agent(checkpointer=checkpointer, disabled_tools=set(body.disabled_tools))
                 config = {"configurable": {"thread_id": str(conversation_id)}}
 
                 # Resume the graph with the user's decision
@@ -381,6 +384,14 @@ async def resume_conversation(
             _active_resumes.discard(conversation_id)
 
     return EventSourceResponse(event_generator())
+
+
+@router.get("/tools", response_model=list[AgentToolResponse])
+async def get_agent_tools(
+    user: User = Depends(get_current_active_user),
+) -> list[AgentToolResponse]:
+    """List every tool the agent can use (for the UI's tool toggle menu)."""
+    return [AgentToolResponse(**t) for t in await list_agent_tools()]
 
 
 @router.get("/conversations", response_model=list[ConversationResponse])

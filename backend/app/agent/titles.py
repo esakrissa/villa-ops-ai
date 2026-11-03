@@ -65,5 +65,5 @@ async def generate_llm_title(message: str) -> str | None:
             if title:
                 return title
         except Exception as exc:
-            logger.warning("Title generation with %s failed: %s", model, exc)
+            logger.warning("Title generation with %s failed: %r", model, exc)
     return None

@@ -18,7 +18,11 @@ logger = logging.getLogger(__name__)
 BALI_TZ = timezone(timedelta(hours=8))
 
 
-def create_agent_node(llm: ChatLiteLLM | list[ChatLiteLLM], tools: list):
+def create_agent_node(
+    llm: ChatLiteLLM | list[ChatLiteLLM],
+    tools: list,
+    disabled_tools: set[str] | None = None,
+):
     """Create the agent node function with tools bound to the LLM.
 
     Accepts a single LLM or a list ordered by preference — later entries are
@@ -41,6 +45,13 @@ def create_agent_node(llm: ChatLiteLLM | list[ChatLiteLLM], tools: list):
             f"Use this as the reference for 'today', 'tomorrow', 'this week', etc."
         )
         system_content = SYSTEM_PROMPT + time_context
+        if disabled_tools:
+            system_content += (
+                "\n\n## Disabled Tools\n"
+                f"The user has switched off these tools: {', '.join(sorted(disabled_tools))}. "
+                "Do not call them. If a request needs one, say which tool is turned off and that "
+                "they can re-enable it from the tools menu in the chat composer."
+            )
 
         if user_id:
             system_content += (

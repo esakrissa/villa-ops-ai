@@ -16,12 +16,14 @@ class ChatRequest(BaseModel):
 
     message: str = Field(..., min_length=1, max_length=10000)
     conversation_id: uuid.UUID | None = None  # None = start new conversation
+    disabled_tools: list[str] = Field(default_factory=list, max_length=200)  # tools switched off in the UI
 
 
 class ResumeRequest(BaseModel):
     """Request to resume a paused conversation (HITL confirmation)."""
 
     action: str = Field(..., pattern="^(approve|cancel)$")  # "approve" or "cancel"
+    disabled_tools: list[str] = Field(default_factory=list, max_length=200)
 
 
 # ---------------------------------------------------------------------------
@@ -53,6 +55,14 @@ class ConversationResponse(BaseModel):
     message_count: int = 0
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class AgentToolResponse(BaseModel):
+    """A tool the agent can call, for the UI's enable/disable menu."""
+
+    name: str
+    description: str
+    source: str  # "villaops" or "exa"
 
 
 class ConversationDetailResponse(BaseModel):

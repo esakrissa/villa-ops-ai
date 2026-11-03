@@ -28,7 +28,33 @@ logger = logging.getLogger(__name__)
 DESTRUCTIVE_TOOLS = {"property_delete", "guest_delete"}
 
 
-async def create_agent(checkpointer=None):
+def get_mcp_sources() -> list[tuple[str, str]]:
+    """Return ``(source, url)`` pairs for every MCP server the agent uses."""
+    # Primary: VillaOps MCP server (docker-compose overrides to http://mcp:8001/mcp)
+    sources = [("villaops", settings.mcp_server_url)]
+    # Optional: Exa hosted MCP server for web search
+    if settings.exa_api_key:
+        sources.append(("exa", f"https://mcp.exa.ai/mcp?exaApiKey={settings.exa_api_key}"))
+    return sources
+
+
+async def list_agent_tools() -> list[dict]:
+    """Discover every tool the agent can use, tagged with its source.
+
+    Used by the UI's tool toggle menu. Unreachable sources are skipped.
+    """
+    tools: list[dict] = []
+    for source, url in get_mcp_sources():
+        try:
+            for tool in await load_mcp_tools(url):
+                description = (tool.description or "").strip().splitlines()[0] if tool.description else ""
+                tools.append({"name": tool.name, "description": description, "source": source})
+        except Exception:
+            logger.warning("Could not list tools from %s source", source, exc_info=True)
+    return tools
+
+
+async def create_agent(checkpointer=None, disabled_tools: set[str] | None = None):
     """Create and return the compiled VillaOps AI agent graph.
 
     1. Loads MCP tools from the MCP server (Streamable HTTP)
@@ -39,6 +65,8 @@ async def create_agent(checkpointer=None):
     Args:
         checkpointer: Optional LangGraph checkpointer for HITL persistence.
                      Required for interrupt()/Command(resume=...) support.
+        disabled_tools: Tool names the user switched off in the UI; they are
+                     not bound to the LLM for this run.
     """
     # Set API keys for LiteLLM
     if settings.gemini_api_key:
@@ -50,18 +78,11 @@ async def create_agent(checkpointer=None):
     if settings.openrouter_api_key:
         os.environ["OPENROUTER_API_KEY"] = settings.openrouter_api_key
 
-    # Build list of MCP server URLs
-    # Primary: VillaOps MCP server (docker-compose overrides to http://mcp:8001/mcp)
-    mcp_urls = [settings.mcp_server_url]
-
-    # Optional: Exa hosted MCP server for web search
-    if settings.exa_api_key:
-        exa_url = f"https://mcp.exa.ai/mcp?exaApiKey={settings.exa_api_key}"
-        mcp_urls.append(exa_url)
-        logger.info("Exa MCP enabled for web search")
-
     # Load MCP tools as LangChain tools (non-fatal per URL)
-    tools = await load_mcp_tools(mcp_urls)
+    tools = await load_mcp_tools([url for _, url in get_mcp_sources()])
+    if disabled_tools:
+        tools = [t for t in tools if t.name not in disabled_tools]
+        logger.info("Disabled by user: %s", sorted(disabled_tools))
     logger.info("Loaded %d MCP tools", len(tools))
 
     # Build fallback model list for LiteLLM — if the primary model is
@@ -96,7 +117,7 @@ async def create_agent(checkpointer=None):
     graph = StateGraph(AgentState)
 
     # Add nodes
-    agent_node = create_agent_node(llms, tools)
+    agent_node = create_agent_node(llms, tools, disabled_tools)
 
     # Use custom tools node with HITL interrupt for destructive operations,
     # falling back to standard ToolNode for non-destructive tools
