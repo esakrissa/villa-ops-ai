@@ -1,77 +1,104 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
+import { ArrowUpIcon, SparkIcon, StopIcon } from "@/components/ui/icons";
 
 interface ChatInputProps {
   onSend: (message: string) => void;
   disabled?: boolean;
+  isLoading?: boolean;
+  onStop?: () => void;
+  autoFocus?: boolean;
+  placeholder?: string;
 }
 
-export function ChatInput({ onSend, disabled }: ChatInputProps) {
+/** Floating composer card — textarea, model chip, send/stop button. */
+export function ChatInput({
+  onSend,
+  disabled,
+  isLoading,
+  onStop,
+  autoFocus,
+  placeholder = "Ask about bookings, guests, properties…",
+}: ChatInputProps) {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const resetHeight = useCallback(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 160)}px`;
-    }
-  }, []);
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 220)}px`;
+  }, [input]);
 
   useEffect(() => {
-    resetHeight();
-  }, [input, resetHeight]);
+    if (autoFocus) textareaRef.current?.focus();
+  }, [autoFocus]);
 
   const handleSend = useCallback(() => {
     const trimmed = input.trim();
-    if (!trimmed || disabled) return;
+    if (!trimmed || disabled || isLoading) return;
     onSend(trimmed);
     setInput("");
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-    }
-  }, [input, disabled, onSend]);
+  }, [input, disabled, isLoading, onSend]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
+  const canSend = !!input.trim() && !disabled && !isLoading;
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl items-end gap-3">
-      <div className="relative flex-1">
+    <div className="mx-auto w-full max-w-3xl">
+      <div className="rounded-[26px] border border-gray-200 bg-white p-2 shadow-[0_8px_30px_-12px_rgb(47_44_37/0.18)] transition-[border-color,box-shadow] focus-within:border-gray-300 focus-within:shadow-[0_10px_40px_-12px_rgb(47_44_37/0.25)]">
         <textarea
           ref={textareaRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Ask about bookings, guests, properties..."
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+              e.preventDefault();
+              handleSend();
+            }
+          }}
+          placeholder={placeholder}
           disabled={disabled}
           rows={1}
-          className="w-full resize-none rounded-xl border border-gray-300 bg-white px-4 py-3 pr-12 text-sm text-gray-900 shadow-sm outline-none transition-colors placeholder:text-gray-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 disabled:bg-gray-50 disabled:text-gray-400"
+          className="block max-h-[220px] w-full resize-none bg-transparent px-3 pb-2 pt-2.5 text-[15px] leading-relaxed text-ink outline-none placeholder:text-gray-400 disabled:text-gray-400"
         />
+        <div className="flex items-center justify-between gap-2 px-1">
+          <div className="flex items-center gap-1.5">
+            <span className="flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 text-[12px] text-gray-600">
+              <SparkIcon className="h-3.5 w-3.5" />
+              Gemini 3.5 Flash
+            </span>
+            <span className="hidden items-center gap-1.5 rounded-full px-2 py-1 text-[12px] text-gray-500 sm:flex">
+              <span className="live-dot !h-1.5 !w-1.5" />
+              15 tools
+            </span>
+          </div>
+          {isLoading && onStop ? (
+            <button
+              type="button"
+              onClick={onStop}
+              title="Stop"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-ink text-cream transition-transform active:scale-95"
+            >
+              <StopIcon className="h-3 w-3" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleSend}
+              disabled={!canSend}
+              title="Send"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-lime text-coal transition-[background,transform] hover:bg-lime-deep active:scale-95 disabled:bg-gray-100 disabled:text-gray-400"
+            >
+              <ArrowUpIcon className="h-4 w-4" />
+            </button>
+          )}
+        </div>
       </div>
-      <button
-        onClick={handleSend}
-        disabled={!input.trim() || disabled}
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm transition-colors hover:bg-indigo-700 disabled:bg-gray-300 disabled:text-gray-400"
-      >
-        <svg
-          className="h-5 w-5"
-          fill="none"
-          viewBox="0 0 24 24"
-          strokeWidth={2}
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M6 12 3.269 3.125A59.769 59.769 0 0 1 21.485 12 59.768 59.768 0 0 1 3.27 20.875L5.999 12Zm0 0h7.5"
-          />
-        </svg>
-      </button>
+      <p className="mt-2 text-center text-[11.5px] text-gray-400">
+        VillaOps asks before changing anything. Press <kbd className="font-mono">Enter</kbd> to send,{" "}
+        <kbd className="font-mono">Shift + Enter</kbd> for a new line.
+      </p>
     </div>
   );
 }

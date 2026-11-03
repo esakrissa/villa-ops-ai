@@ -31,7 +31,7 @@ JSON_TYPE_MAP: dict[str, type] = {
 
 
 def _build_args_model(tool_name: str, input_schema: dict) -> type[BaseModel]:
-    """Build a Pydantic model from an MCP tool's JSON Schema inputSchema."""
+    """Build a Pydantic model from an MCP tool's JSON Schema input_schema."""
     properties = input_schema.get("properties", {})
     required = set(input_schema.get("required", []))
 
@@ -60,7 +60,7 @@ async def _call_mcp_tool(mcp_url: str, tool_name: str, **kwargs: Any) -> str:
     args = {k: v for k, v in kwargs.items() if v is not None}
     try:
         async with asyncio.timeout(MCP_TOOL_CALL_TIMEOUT):
-            async with streamable_http_client(mcp_url) as (read, write, _), ClientSession(read, write) as session:
+            async with streamable_http_client(mcp_url) as (read, write), ClientSession(read, write) as session:
                 await session.initialize()
                 result = await session.call_tool(tool_name, args)
                 return result.content[0].text
@@ -71,13 +71,13 @@ async def _call_mcp_tool(mcp_url: str, tool_name: str, **kwargs: Any) -> str:
 
 async def _load_tools_from_url(mcp_url: str) -> list[StructuredTool]:
     """Load tools from a single MCP server URL."""
-    async with streamable_http_client(mcp_url) as (read, write, _), ClientSession(read, write) as session:
+    async with streamable_http_client(mcp_url) as (read, write), ClientSession(read, write) as session:
             await session.initialize()
             tools_response = await session.list_tools()
 
     langchain_tools = []
     for mcp_tool in tools_response.tools:
-        args_model = _build_args_model(mcp_tool.name, mcp_tool.inputSchema)
+        args_model = _build_args_model(mcp_tool.name, mcp_tool.input_schema)
 
         # Create a closure for this specific tool — default args capture current values
         async def tool_fn(_tool_name=mcp_tool.name, _mcp_url=mcp_url, **kwargs):

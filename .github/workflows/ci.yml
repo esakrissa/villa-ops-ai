@@ -89,7 +89,7 @@ jobs:
       STRIPE_WEBHOOK_SECRET: whsec_test_fake
       STRIPE_PRO_PRICE_ID: price_test_pro
       STRIPE_BUSINESS_PRICE_ID: price_test_business
-      DEFAULT_LLM_MODEL: gemini/gemini-3-flash-preview
+      DEFAULT_LLM_MODEL: gemini/gemini-3.5-flash
       FRONTEND_URL: http://localhost:3000
       CORS_ORIGINS: '["http://localhost:3000"]'
 

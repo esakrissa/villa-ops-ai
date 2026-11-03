@@ -1,11 +1,59 @@
 @import "tailwindcss";
 
+/*
+ * VillaOps design system — warm editorial palette.
+ * Base: cream paper + warm ink (Prospect), beige + lime signal (Bailey Hart).
+ * The gray and indigo scales are remapped so every existing utility
+ * (bg-gray-50, text-indigo-600, ...) picks up the new palette.
+ */
 @theme {
   --font-sans: var(--font-geist-sans), "system-ui", sans-serif;
-  --font-mono: var(--font-geist-mono), monospace;
-  --color-primary: #4f46e5;
-  --color-primary-hover: #4338ca;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+  --font-serif: var(--font-instrument-serif), "Georgia", serif;
+
+  /* Brand tokens */
+  --color-cream: #fefaf3;
+  --color-sand: #f1eadd;
+  --color-linen: #f4efeb;
+  --color-ink: #2f2c25;
+  --color-coal: #1f1d1b;
+  --color-lime: #d5f500;
+  --color-lime-deep: #b8d400;
+  --color-clay: #c4703f;
+
+  --color-primary: #2f2c25;
+  --color-primary-hover: #1f1d1b;
+
+  /* Warm neutral scale (replaces Tailwind gray) */
+  --color-gray-50: #fbf7f0;
+  --color-gray-100: #f4eee5;
+  --color-gray-200: #e8e1d5;
+  --color-gray-300: #d6cdbd;
+  --color-gray-400: #aaa190;
+  --color-gray-500: #847b6c;
+  --color-gray-600: #625b50;
+  --color-gray-700: #48433b;
+  --color-gray-800: #37332d;
+  --color-gray-900: #2f2c25;
+  --color-gray-950: #1f1d1b;
+
+  /* Ink scale (replaces Tailwind indigo — primary actions become ink) */
+  --color-indigo-50: #f1eadd;
+  --color-indigo-100: #e8dfcd;
+  --color-indigo-200: #d8ccb5;
+  --color-indigo-300: #bfb094;
+  --color-indigo-400: #8d826d;
+  --color-indigo-500: #4a443a;
+  --color-indigo-600: #2f2c25;
+  --color-indigo-700: #1f1d1b;
+  --color-indigo-800: #171512;
+  --color-indigo-900: #100f0d;
+
   --animate-slide-in-left: slide-in-left 200ms ease-out;
+  --animate-fade-up: fade-up 700ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-marquee: marquee 28s linear infinite;
+  --animate-pulse-dot: pulse-dot 2s ease-in-out infinite;
 }
 
 @keyframes slide-in-left {
@@ -14,5 +62,271 @@
   }
   to {
     transform: translateX(0);
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(213 245 0 / 0.55);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgb(213 245 0 / 0);
+  }
+}
+
+@layer base {
+  body {
+    background: var(--color-cream);
+    color: var(--color-ink);
+  }
+
+  ::selection {
+    background: var(--color-lime);
+    color: var(--color-coal);
+  }
+
+  /* Native selects: drop the OS chrome, draw our own chevron */
+  select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23847b6c' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 0.85rem center;
+    background-size: 14px;
+    padding-right: 2.25rem !important;
+    cursor: pointer;
+  }
+
+  input[type="date"] {
+    color-scheme: light;
+  }
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    opacity: 0.45;
+    cursor: pointer;
+  }
+}
+
+@layer components {
+  /* Mono uppercase label — "WELCOME TO VILLAOPS" */
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .display {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 0.98;
+  }
+
+  .btn-ink {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    background: var(--color-ink);
+    color: var(--color-cream);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 0.7rem 1.25rem;
+    transition:
+      background 150ms,
+      transform 150ms;
+  }
+  .btn-ink:hover {
+    background: var(--color-coal);
+  }
+  .btn-ink:active {
+    transform: scale(0.98);
+  }
+
+  .btn-sand {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    background: var(--color-sand);
+    color: var(--color-ink);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 0.7rem 1.25rem;
+    transition: background 150ms;
+  }
+  .btn-sand:hover {
+    background: #e8dfcd;
+  }
+
+  /* Frosted glass surface for chat bubbles over warm imagery */
+  .glass {
+    background: rgb(255 255 255 / 0.62);
+    border: 1px solid rgb(255 255 255 / 0.55);
+    backdrop-filter: blur(14px) saturate(1.2);
+    -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  }
+  .glass-dark {
+    background: rgb(31 29 27 / 0.42);
+    border: 1px solid rgb(255 255 255 / 0.14);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+  }
+
+  /* Warm photographic gradients — stand-ins for Bali imagery */
+  .scene-sunset {
+    background:
+      radial-gradient(120% 80% at 20% 10%, #f6d7a7 0%, transparent 55%),
+      radial-gradient(90% 70% at 85% 30%, #e59b62 0%, transparent 60%),
+      radial-gradient(120% 90% at 50% 110%, #6b4a2b 0%, transparent 60%),
+      linear-gradient(160deg, #f3c58f 0%, #c97b4a 55%, #5a3d25 100%);
+  }
+  .scene-jungle {
+    background:
+      radial-gradient(100% 70% at 70% 15%, #e9e3b6 0%, transparent 55%),
+      radial-gradient(90% 80% at 15% 70%, #5f7a45 0%, transparent 60%),
+      radial-gradient(120% 90% at 80% 110%, #26331f 0%, transparent 60%),
+      linear-gradient(170deg, #c7c48d 0%, #6f8450 50%, #2a3524 100%);
+  }
+  .scene-dusk {
+    background:
+      radial-gradient(110% 80% at 30% 0%, #f1dcc4 0%, transparent 55%),
+      radial-gradient(90% 70% at 90% 60%, #a96b4c 0%, transparent 60%),
+      linear-gradient(175deg, #dcb999 0%, #8c5a3f 55%, #3a2a20 100%);
+  }
+  .scene-ocean {
+    background:
+      radial-gradient(110% 80% at 80% 0%, #f2e6cf 0%, transparent 55%),
+      radial-gradient(100% 80% at 10% 80%, #4f7f86 0%, transparent 60%),
+      linear-gradient(175deg, #cfd8c6 0%, #6f9a98 50%, #2a4447 100%);
+  }
+  .scene-rice {
+    background:
+      radial-gradient(100% 70% at 20% 0%, #f4ecc4 0%, transparent 55%),
+      radial-gradient(90% 80% at 90% 70%, #93a35a 0%, transparent 60%),
+      linear-gradient(170deg, #e2dca5 0%, #a2a85f 50%, #4a5230 100%);
+  }
+  .scene-footer {
+    background:
+      radial-gradient(80% 90% at 15% 10%, #8a6a45 0%, transparent 60%),
+      radial-gradient(70% 80% at 85% 20%, #6c5235 0%, transparent 60%),
+      radial-gradient(120% 100% at 50% 120%, #1f1d1b 0%, transparent 70%),
+      linear-gradient(180deg, #5b4630 0%, #2c241b 100%);
+  }
+
+  /* Subtle film grain on scenes */
+  .grain {
+    position: relative;
+    isolation: isolate;
+  }
+  .grain::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.18;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  .grain > * {
+    position: relative;
+  }
+
+  /* Ticker-style shimmering status text — "SEARCHING BOOKINGS" */
+  .shimmer-text {
+    background: linear-gradient(
+      90deg,
+      var(--color-gray-400) 0%,
+      var(--color-gray-400) 35%,
+      var(--color-ink) 50%,
+      var(--color-gray-400) 65%,
+      var(--color-gray-400) 100%
+    );
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: var(--animate-shimmer);
+  }
+
+  /* Pill form field — selects, dates, search */
+  .field {
+    height: 2.5rem;
+    border-radius: 9999px;
+    border: 1px solid var(--color-gray-200);
+    background-color: white;
+    padding: 0 1rem;
+    font-size: 14px;
+    color: var(--color-ink);
+    outline: none;
+    transition:
+      border-color 150ms,
+      box-shadow 150ms;
+  }
+  .field:hover {
+    border-color: var(--color-gray-300);
+  }
+  .field:focus {
+    border-color: var(--color-gray-400);
+    box-shadow: 0 0 0 4px rgb(47 44 37 / 0.06);
+  }
+
+  /* Standard dashboard surface */
+  .panel {
+    border-radius: 1.5rem;
+    border: 1px solid rgb(232 225 213 / 0.9);
+    background: white;
+  }
+
+  .live-dot {
+    display: inline-block;
+    height: 7px;
+    width: 7px;
+    border-radius: 9999px;
+    background: var(--color-lime);
+    animation: var(--animate-pulse-dot);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }

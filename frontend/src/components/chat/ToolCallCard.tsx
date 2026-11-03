@@ -1,162 +1,148 @@
 "use client";
 
-import { useState, useId } from "react";
+import { useId, useState } from "react";
+import { CheckIcon, ChevronIcon, SparkIcon } from "@/components/ui/icons";
+import { summarizeArgs, toolLabel } from "@/lib/toolLabels";
 
-interface ToolCallCardProps {
+interface ToolCall {
   name: string;
   args: Record<string, unknown>;
-  result?: string;
-  isStreaming?: boolean;
 }
 
-function formatToolName(name: string): string {
-  return name
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
+function prettyResult(result: string): string {
+  try {
+    return JSON.stringify(JSON.parse(result), null, 2);
+  } catch {
+    return result;
+  }
 }
 
-function formatValue(value: unknown): string {
-  if (typeof value === "string") return value;
-  if (value === null || value === undefined) return "—";
-  return JSON.stringify(value);
-}
-
-function WrenchIcon({ className }: { className?: string }) {
+function Spinner() {
   return (
-    <svg
-      className={className}
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={1.5}
-      stroke="currentColor"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M11.42 15.17 17.25 21A2.652 2.652 0 0 0 21 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 1 1-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 0 0 4.486-6.336l-3.276 3.277a3.004 3.004 0 0 1-2.25-2.25l3.276-3.276a4.5 4.5 0 0 0-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085m-1.745 1.437L5.909 7.5H4.5L2.25 3.75l1.5-1.5L7.5 4.5v1.409l4.26 4.26m-1.745 1.437 1.745-1.437m6.615 8.206L15.75 15.75M4.867 19.125h.008v.008h-.008v-.008Z"
-      />
-    </svg>
+    <span className="relative flex h-4 w-4 items-center justify-center">
+      <span className="absolute h-4 w-4 animate-spin rounded-full border-[1.5px] border-gray-300 border-t-ink" />
+    </span>
   );
 }
 
-function SpinnerIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none">
-      <circle
-        className="opacity-25"
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        strokeWidth="4"
-      />
-      <path
-        className="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-      />
-    </svg>
-  );
-}
-
-function CheckIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={2}
-      stroke="currentColor"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="m4.5 12.75 6 6 9-13.5"
-      />
-    </svg>
-  );
-}
-
+/** One step in the agent's work log — Cursor/Claude style. */
 export function ToolCallCard({
   name,
   args,
   result,
   isStreaming,
-}: ToolCallCardProps) {
+  isLast,
+}: ToolCall & { result?: string; isStreaming?: boolean; isLast?: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const contentId = useId();
-
-  const isPending = isStreaming && !result;
-  const argEntries = Object.entries(args);
+  const pending = !!isStreaming && !result;
+  const summary = summarizeArgs(args);
+  const visibleArgs = Object.entries(args).filter(([k]) => k !== "user_id");
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
+    <li className="relative pl-7">
+      {/* Timeline rail */}
+      {!isLast && <span className="absolute bottom-[-6px] left-[7.5px] top-6 w-px bg-gray-200" />}
+      <span className="absolute left-0 top-[9px]">
+        {pending ? (
+          <Spinner />
+        ) : (
+          <span className="flex h-4 w-4 items-center justify-center rounded-full bg-ink text-cream">
+            <CheckIcon className="h-2.5 w-2.5" />
+          </span>
+        )}
+      </span>
+
       <button
+        type="button"
         onClick={() => setExpanded(!expanded)}
         aria-expanded={expanded}
         aria-controls={contentId}
-        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-gray-50"
+        className="group flex w-full items-center gap-2 rounded-lg py-1.5 pr-2 text-left"
       >
-        <WrenchIcon className="h-4 w-4 shrink-0 text-indigo-500" />
-        <span className="font-medium text-gray-700">
-          {formatToolName(name)}
+        <span className={`shrink-0 text-[14px] ${pending ? "shimmer-text font-medium" : "text-ink"}`}>
+          {toolLabel(name, pending)}
         </span>
-        <span className="ml-auto flex items-center gap-1.5">
-          {isPending ? (
-            <SpinnerIcon className="h-4 w-4 animate-spin text-amber-500" />
-          ) : (
-            <CheckIcon className="h-4 w-4 text-green-500" />
-          )}
-          <svg
-            className={`h-4 w-4 text-gray-400 transition-[rotate] duration-200 ${expanded ? "rotate-180" : ""}`}
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="m19.5 8.25-7.5 7.5-7.5-7.5"
-            />
-          </svg>
-        </span>
+        {summary && <span className="min-w-0 truncate text-[13px] text-gray-400">{summary}</span>}
+        <ChevronIcon
+          className={`ml-auto h-3.5 w-3.5 shrink-0 text-gray-400 opacity-0 transition-[opacity,rotate] group-hover:opacity-100 ${
+            expanded ? "rotate-180 opacity-100" : ""
+          }`}
+        />
       </button>
 
       {expanded && (
-        <div id={contentId} className="border-t border-gray-100 px-3 py-2">
-          {argEntries.length > 0 && (
-            <div className="mb-2">
-              <p className="mb-1 text-xs font-medium text-gray-500">
-                Parameters
-              </p>
-              <dl className="space-y-0.5">
-                {argEntries.map(([key, value]) => (
-                  <div key={key} className="flex gap-2 text-xs">
-                    <dt className="shrink-0 font-mono text-gray-500">{key}:</dt>
-                    <dd className="truncate text-gray-700">
-                      {formatValue(value)}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
+        <div id={contentId} className="mb-2 mt-1 overflow-hidden rounded-xl border border-gray-200 bg-white">
+          <div className="flex items-center justify-between border-b border-gray-100 px-3 py-2">
+            <span className="font-mono text-[11px] text-gray-500">{name}</span>
+            <span className="eyebrow !text-[10px] text-gray-400">{pending ? "Running" : "Completed"}</span>
+          </div>
+          {visibleArgs.length > 0 && (
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 px-3 py-2.5 text-[12px]">
+              {visibleArgs.map(([k, v]) => (
+                <div key={k} className="contents">
+                  <dt className="font-mono text-gray-400">{k}</dt>
+                  <dd className="truncate font-mono text-gray-700">{typeof v === "string" ? v : JSON.stringify(v)}</dd>
+                </div>
+              ))}
+            </dl>
           )}
-
           {result && (
-            <div>
-              <p className="mb-1 text-xs font-medium text-gray-500">Result</p>
-              <pre className="max-h-48 overflow-auto rounded-md bg-gray-50 p-2 font-mono text-xs whitespace-pre-wrap text-gray-700">
-                {result}
-              </pre>
-            </div>
-          )}
-
-          {isPending && (
-            <p className="text-xs italic text-gray-400">Running...</p>
+            <pre className="max-h-64 overflow-auto border-t border-gray-100 bg-gray-50 px-3 py-2.5 font-mono text-[11.5px] leading-relaxed whitespace-pre-wrap text-gray-700">
+              {prettyResult(result)}
+            </pre>
           )}
         </div>
+      )}
+    </li>
+  );
+}
+
+/** Collapsible group of tool steps: "Used 3 tools" / "Working…". */
+export function ToolSteps({
+  toolCalls,
+  toolResults,
+  isStreaming,
+}: {
+  toolCalls: ToolCall[];
+  toolResults?: { name: string; result: string }[];
+  isStreaming?: boolean;
+}) {
+  const running = !!isStreaming && toolCalls.some((_, i) => !toolResults?.[i]?.result);
+  const [open, setOpen] = useState(true);
+  const count = toolCalls.length;
+
+  return (
+    <div className="mb-3">
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="group flex items-center gap-2 rounded-full border border-gray-200 bg-white py-1 pl-2 pr-3 text-[13px] text-gray-600 transition-colors hover:border-gray-300 hover:text-ink"
+      >
+        <SparkIcon className={`h-3.5 w-3.5 ${running ? "text-ink" : "text-gray-500"}`} />
+        {running ? (
+          <span className="shimmer-text font-medium">Working</span>
+        ) : (
+          <span>
+            Used {count} {count === 1 ? "tool" : "tools"}
+          </span>
+        )}
+        <ChevronIcon className={`h-3 w-3 text-gray-400 transition-[rotate] ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <ol className="mt-2 ml-1">
+          {toolCalls.map((tc, i) => (
+            <ToolCallCard
+              key={i}
+              name={tc.name}
+              args={tc.args}
+              result={toolResults?.[i]?.result}
+              isStreaming={isStreaming}
+              isLast={i === count - 1}
+            />
+          ))}
+        </ol>
       )}
     </div>
   );

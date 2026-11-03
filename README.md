@@ -506,10 +506,12 @@ All variables are configured via `.env` (see [`.env.example`](.env.example) for 
 | `STRIPE_PRO_PRICE_ID` | No* | Stripe Price ID for Pro plan |
 | `STRIPE_BUSINESS_PRICE_ID` | No* | Stripe Price ID for Business plan |
 | **LLM** | | |
-| `DEFAULT_LLM_MODEL` | No | LiteLLM model string (default: `gemini/gemini-3-flash-preview`) |
+| `DEFAULT_LLM_MODEL` | No | LiteLLM model string (default: `gemini/gemini-3.5-flash`) |
 | `GEMINI_API_KEY` | Yes** | Google Gemini API key (**at least one LLM key required) |
 | `ANTHROPIC_API_KEY` | No | Anthropic API key (fallback) |
 | `OPENAI_API_KEY` | No | OpenAI API key (fallback) |
+| `OPENROUTER_API_KEY` | No | OpenRouter API key (fallback, free models) |
+| `OPENROUTER_FALLBACK_MODEL` | No | OpenRouter fallback model (default: `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free`) |
 | **Web Search** | | |
 | `EXA_API_KEY` | No | Exa API key for the `web_search` tool |
 | **Services** | | |

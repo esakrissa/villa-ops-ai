@@ -8,60 +8,35 @@ interface UsageMeterProps {
 }
 
 export function UsageMeter({ label, used, limit, icon }: UsageMeterProps) {
-  if (limit === null) {
-    return (
-      <div className="space-y-2">
-        <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
-          {icon}
-          <span>{label}</span>
-        </div>
-        <p className="text-sm text-gray-500">
-          <span className="font-semibold text-gray-900">{used}</span> used
-          &middot; Unlimited
-        </p>
-      </div>
-    );
-  }
-
-  const percentage = limit > 0 ? Math.min(Math.round((used / limit) * 100), 100) : 0;
-
-  let barColor: string;
-  let warningText: string | null = null;
-
-  if (percentage >= 90) {
-    barColor = "bg-red-500";
-    warningText = "Upgrade for more";
-  } else if (percentage >= 70) {
-    barColor = "bg-amber-500";
-    warningText = "Approaching limit";
-  } else {
-    barColor = "bg-indigo-600";
-  }
+  const unlimited = limit === null;
+  const percentage = !unlimited && limit > 0 ? Math.min(Math.round((used / limit) * 100), 100) : 0;
+  const atLimit = percentage >= 90;
+  const nearLimit = percentage >= 70 && !atLimit;
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
-        {icon}
-        <span>{label}</span>
-      </div>
-      <div className="flex items-baseline justify-between text-sm">
-        <p className="text-gray-500">
-          <span className="font-semibold text-gray-900">{used}</span> / {limit}{" "}
-          used
+    <div>
+      <div className="flex items-center justify-between">
+        <p className="flex items-center gap-2 text-[14px] text-gray-600">
+          {icon}
+          {label}
         </p>
-        <span className="text-gray-400">{percentage}%</span>
+        {!unlimited && <span className="font-mono text-[11px] text-gray-400">{percentage}%</span>}
       </div>
-      <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
-        <div
-          className={`h-full rounded-full transition-all ${barColor}`}
-          style={{ width: `${percentage}%` }}
-        />
-      </div>
-      {warningText && (
-        <p
-          className={`text-xs font-medium ${percentage >= 90 ? "text-red-600" : "text-amber-600"}`}
-        >
-          {warningText}
+      <p className="mt-2 flex items-baseline gap-1.5">
+        <span className="display text-[44px] leading-none text-ink">{used}</span>
+        <span className="text-[14px] text-gray-500">{unlimited ? "used · unlimited" : `of ${limit}`}</span>
+      </p>
+      {!unlimited && (
+        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+          <div
+            className={`h-full rounded-full transition-[width] duration-500 ${atLimit ? "bg-[#b4532a]" : "bg-ink"}`}
+            style={{ width: `${percentage}%` }}
+          />
+        </div>
+      )}
+      {(atLimit || nearLimit) && (
+        <p className={`mt-2 text-[12px] ${atLimit ? "text-[#b4532a]" : "text-gray-500"}`}>
+          {atLimit ? "Limit reached. Upgrade for more." : "Approaching your limit."}
         </p>
       )}
     </div>

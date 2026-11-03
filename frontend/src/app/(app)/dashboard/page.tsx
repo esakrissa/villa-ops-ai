@@ -35,22 +35,20 @@ interface MetricCardProps {
 
 function MetricCard({ title, value, subtitle, icon, loading }: MetricCardProps) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+    <div className="panel flex flex-col justify-between p-5">
       <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-500">{title}</p>
-          {loading ? (
-            <div className="mt-1 h-8 w-20 animate-pulse rounded bg-gray-200" />
-          ) : (
-            <p className="mt-1 text-3xl font-bold text-gray-900">{value}</p>
-          )}
-          {subtitle && (
-            <p className="mt-1 text-xs text-gray-500">{subtitle}</p>
-          )}
-        </div>
-        <div className="rounded-lg bg-indigo-50 p-3 text-indigo-600">
+        <p className="eyebrow text-gray-500">{title}</p>
+        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sand text-ink [&_svg]:h-[18px] [&_svg]:w-[18px]">
           {icon}
         </div>
+      </div>
+      <div className="mt-6">
+        {loading ? (
+          <div className="h-10 w-24 animate-pulse rounded-lg bg-gray-100" />
+        ) : (
+          <p className="display text-[48px] leading-none text-ink">{value}</p>
+        )}
+        {subtitle && <p className="mt-2 text-[13px] text-gray-500">{subtitle}</p>}
       </div>
     </div>
   );
@@ -129,11 +127,18 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Overview of your villa operations.
-        </p>
+      <div className="scene-sunset grain relative overflow-hidden rounded-[32px] p-6 sm:p-8">
+        <p className="eyebrow text-coal/65">Overview</p>
+        <h1 className="display mt-3 max-w-xl text-[44px] text-coal sm:text-[56px]">
+          Your villas, <em>at a glance</em>.
+        </h1>
+        <Link
+          href="/chat"
+          className="glass mt-6 flex max-w-md items-center justify-between gap-3 rounded-full py-1.5 pl-5 pr-1.5 text-[14px] text-coal/70 transition-colors hover:bg-white/80"
+        >
+          Ask the agent about today&apos;s arrivals…
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-lime text-coal">→</span>
+        </Link>
       </div>
 
       {/* Metric cards */}
@@ -182,7 +187,7 @@ export default function DashboardPage() {
           title="Occupancy Rate"
           value={
             occupancyRate !== null
-              ? `${Math.round(occupancyRate * 100)}%`
+              ? `${Number(occupancyRate).toFixed(1)}%` // API returns a percentage (Decimal string)
               : "\u2014"
           }
           subtitle="Current month"
@@ -235,9 +240,9 @@ export default function DashboardPage() {
       </div>
 
       {/* Recent bookings */}
-      <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
+      <div className="panel overflow-hidden">
         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">
+          <h2 className="text-[17px] font-medium tracking-tight text-ink">
             Recent Bookings
           </h2>
           <Link
@@ -299,7 +304,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Link
           href="/dashboard/bookings"
-          className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-colors hover:bg-gray-50"
+          className="flex items-center gap-3 panel p-4 shadow-sm transition-colors hover:bg-gray-50"
         >
           <div className="rounded-lg bg-indigo-50 p-2 text-indigo-600">
             <svg
@@ -327,7 +332,7 @@ export default function DashboardPage() {
         </Link>
         <Link
           href="/dashboard/properties"
-          className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-colors hover:bg-gray-50"
+          className="flex items-center gap-3 panel p-4 shadow-sm transition-colors hover:bg-gray-50"
         >
           <div className="rounded-lg bg-indigo-50 p-2 text-indigo-600">
             <svg
@@ -355,7 +360,7 @@ export default function DashboardPage() {
         </Link>
         <Link
           href="/chat"
-          className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition-colors hover:bg-gray-50"
+          className="flex items-center gap-3 panel p-4 shadow-sm transition-colors hover:bg-gray-50"
         >
           <div className="rounded-lg bg-indigo-50 p-2 text-indigo-600">
             <svg

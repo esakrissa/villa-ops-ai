@@ -15,7 +15,7 @@ MCP_URL = "http://mcp:8001/mcp"
 
 
 async def main():
-    async with streamable_http_client(MCP_URL) as (read, write, _), ClientSession(read, write) as session:
+    async with streamable_http_client(MCP_URL) as (read, write), ClientSession(read, write) as session:
         await session.initialize()
 
         # List available tools

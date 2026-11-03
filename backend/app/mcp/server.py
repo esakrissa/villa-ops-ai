@@ -3,7 +3,7 @@
 Runs as a standalone service. Provides tools for searching bookings
 and looking up guest information.
 
-Uses the FastMCP high-level API with streamable_http_app() for
+Uses the MCPServer high-level API with streamable_http_app() for
 Streamable HTTP transport (single /mcp endpoint, recommended over
 deprecated SSE transport since MCP spec 2025-03-26).
 """
@@ -18,7 +18,7 @@ from starlette.applications import Starlette
 from starlette.responses import JSONResponse
 from starlette.routing import Mount, Route
 
-from app.mcp import mcp, set_session_factory
+from app.mcp import mcp, set_session_factory, transport_security
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -58,7 +58,11 @@ async def health(request):
 # Starlette ASGI app — mounts MCP Streamable HTTP app + health check
 # ---------------------------------------------------------------------------
 # Create the MCP ASGI sub-app first so session_manager is initialized
-mcp_http_app = mcp.streamable_http_app()
+mcp_http_app = mcp.streamable_http_app(
+    stateless_http=True,
+    json_response=True,
+    transport_security=transport_security,
+)
 
 
 @contextlib.asynccontextmanager

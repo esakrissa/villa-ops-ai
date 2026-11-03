@@ -80,6 +80,8 @@ async def _stream_agent(
         start_time = time.monotonic()
         total_input_tokens = 0
         total_output_tokens = 0
+        # Whether the current LLM step already streamed text via "messages" mode
+        streamed_text = False
 
         try:
             if new_messages is None:
@@ -98,22 +100,15 @@ async def _stream_agent(
                 if mode == "messages":
                     msg_chunk, _metadata = chunk
 
-                    # Stream text tokens to client
+                    # Stream text tokens to client. Tool calls are emitted from
+                    # "updates" only, where their args are complete.
                     if isinstance(msg_chunk, AIMessageChunk) and msg_chunk.content:
                         content = msg_chunk.content if isinstance(msg_chunk.content, str) else str(msg_chunk.content)
+                        streamed_text = True
                         yield json.dumps({
                             "type": "token",
                             "content": content,
                         })
-
-                    # Stream tool call events to client
-                    if isinstance(msg_chunk, AIMessageChunk) and msg_chunk.tool_calls:
-                        for tc in msg_chunk.tool_calls:
-                            yield json.dumps({
-                                "type": "tool_call",
-                                "name": tc.get("name", ""),
-                                "args": tc.get("args", {}),
-                            })
 
                 elif mode == "updates":
                     # Check for __interrupt__ events (HITL)
@@ -168,11 +163,17 @@ async def _stream_agent(
                                         "args": tc.get("args", {}),
                                     })
                             elif isinstance(msg, AIMessage) and msg.content and not msg.tool_calls:
-                                content = msg.content if isinstance(msg.content, str) else str(msg.content)
-                                yield json.dumps({
-                                    "type": "token",
-                                    "content": content,
-                                })
+                                # Fallback for models that don't stream tokens
+                                # via "messages" mode — skip if already streamed
+                                if not streamed_text:
+                                    content = msg.content if isinstance(msg.content, str) else str(msg.content)
+                                    yield json.dumps({
+                                        "type": "token",
+                                        "content": content,
+                                    })
+
+                            if isinstance(msg, AIMessage):
+                                streamed_text = False
 
             stream_ok = True
 

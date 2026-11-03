@@ -53,7 +53,8 @@ function aggregateRevenue(bookings: Booking[]): RevenueData[] {
     if (b.status === "cancelled" || b.total_price === null) continue;
     const date = new Date(b.check_in);
     const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-    monthMap.set(key, (monthMap.get(key) || 0) + b.total_price);
+    // total_price is a Decimal serialized as a string — coerce before adding
+    monthMap.set(key, (monthMap.get(key) || 0) + Number(b.total_price));
   }
   return Array.from(monthMap.entries())
     .sort(([a], [b]) => a.localeCompare(b))
@@ -61,6 +62,43 @@ function aggregateRevenue(bookings: Booking[]): RevenueData[] {
       month: formatMonthLabel(key),
       revenue,
     }));
+}
+
+/** Headline numbers beside the trends chart. */
+function TrendsSummary({
+  data,
+  revenue,
+  loading,
+}: {
+  data: TrendData[];
+  revenue: RevenueData[];
+  loading: boolean;
+}) {
+  const total = data.reduce((sum, d) => sum + d.count, 0);
+  const busiest = data.reduce<TrendData | null>((best, d) => (!best || d.count > best.count ? d : best), null);
+  const totalRevenue = revenue.reduce((sum, r) => sum + r.revenue, 0);
+  const rows = [
+    { label: "Bookings in range", value: String(total) },
+    { label: "Busiest month", value: busiest ? busiest.month : "—" },
+    { label: "Avg. per month", value: data.length ? (total / data.length).toFixed(1) : "—" },
+    { label: "Booked revenue", value: `$${Math.round(totalRevenue).toLocaleString()}` },
+  ];
+
+  return (
+    <div className="scene-dusk grain flex flex-col justify-between overflow-hidden rounded-[1.5rem] p-6">
+      <p className="eyebrow text-cream/70">Summary</p>
+      <dl className="glass mt-6 divide-y divide-coal/10 rounded-2xl px-4">
+        {rows.map((r) => (
+          <div key={r.label} className="flex items-baseline justify-between gap-3 py-3">
+            <dt className="text-[13px] text-coal/70">{r.label}</dt>
+            <dd className="font-serif text-[24px] leading-none text-coal">
+              {loading ? <span className="inline-block h-5 w-12 animate-pulse rounded bg-coal/10" /> : r.value}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
 }
 
 function aggregateTrends(bookings: Booking[]): TrendData[] {
@@ -123,7 +161,7 @@ export default function AnalyticsPage() {
       {/* Header + date range */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
+          <h1 className="display text-[44px] text-ink">Analytics</h1>
           <p className="mt-1 text-sm text-gray-500">
             Insights into your property performance.
             {overallOccupancy !== null && !loading && (
@@ -143,7 +181,7 @@ export default function AnalyticsPage() {
               type="date"
               value={from}
               onChange={(e) => setFrom(e.target.value)}
-              className="rounded-md border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+              className="field"
             />
           </div>
           <div className="flex items-center gap-2">
@@ -155,7 +193,7 @@ export default function AnalyticsPage() {
               type="date"
               value={to}
               onChange={(e) => setTo(e.target.value)}
-              className="rounded-md border border-gray-300 px-3 py-1.5 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+              className="field"
             />
           </div>
         </div>
@@ -171,8 +209,8 @@ export default function AnalyticsPage() {
       {/* Charts */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Occupancy by Property */}
-        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">
+        <div className="panel p-6">
+          <h2 className="mb-5 text-[17px] font-medium tracking-tight text-ink">
             Occupancy by Property
           </h2>
           <OccupancyChart
@@ -187,20 +225,24 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Monthly Revenue */}
-        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-gray-900">
+        <div className="panel p-6">
+          <h2 className="mb-5 text-[17px] font-medium tracking-tight text-ink">
             Monthly Revenue
           </h2>
           <RevenueChart data={revenueData} loading={loading} />
         </div>
       </div>
 
-      {/* Booking Trends — full width */}
-      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-4 text-lg font-semibold text-gray-900">
-          Booking Trends
-        </h2>
-        <BookingTrendsChart data={trendsData} loading={loading} />
+      {/* Booking Trends + summary */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="panel p-6 lg:col-span-2">
+          <h2 className="mb-5 text-[17px] font-medium tracking-tight text-ink">
+            Booking Trends
+          </h2>
+          <BookingTrendsChart data={trendsData} loading={loading} />
+        </div>
+
+        <TrendsSummary data={trendsData} revenue={revenueData} loading={loading} />
       </div>
     </div>
   );

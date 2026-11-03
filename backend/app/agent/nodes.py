@@ -18,9 +18,15 @@ logger = logging.getLogger(__name__)
 BALI_TZ = timezone(timedelta(hours=8))
 
 
-def create_agent_node(llm: ChatLiteLLM, tools: list):
-    """Create the agent node function with tools bound to the LLM."""
-    llm_with_tools = llm.bind_tools(tools)
+def create_agent_node(llm: ChatLiteLLM | list[ChatLiteLLM], tools: list):
+    """Create the agent node function with tools bound to the LLM.
+
+    Accepts a single LLM or a list ordered by preference — later entries are
+    used as fallbacks when an earlier model errors (e.g. 503 overloaded).
+    """
+    llms = llm if isinstance(llm, list) else [llm]
+    bound = [m.bind_tools(tools) for m in llms]
+    llm_with_tools = bound[0].with_fallbacks(bound[1:]) if len(bound) > 1 else bound[0]
 
     async def agent_node(state: AgentState) -> dict:
         """Call the LLM with conversation history and available tools."""

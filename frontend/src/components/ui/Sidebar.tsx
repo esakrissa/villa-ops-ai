@@ -2,186 +2,161 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/lib/hooks/useAuth";
+import { Logo, LogoMark } from "./Logo";
+import {
+  CalendarIcon,
+  CardIcon,
+  ChartIcon,
+  ChatIcon,
+  CloseIcon,
+  GridIcon,
+  HomeIcon,
+  LogoutIcon,
+  PanelLeftIcon,
+} from "./icons";
 
 const navItems = [
-  {
-    label: "Chat",
-    href: "/chat",
-    icon: (
-      <svg
-        className="h-5 w-5"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1.5}
-          d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-        />
-      </svg>
-    ),
-  },
-  {
-    label: "Dashboard",
-    href: "/dashboard",
-    icon: (
-      <svg
-        className="h-5 w-5"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1.5}
-          d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zm10 0a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
-        />
-      </svg>
-    ),
-  },
-  {
-    label: "Bookings",
-    href: "/dashboard/bookings",
-    icon: (
-      <svg
-        className="h-5 w-5"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1.5}
-          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-        />
-      </svg>
-    ),
-  },
-  {
-    label: "Properties",
-    href: "/dashboard/properties",
-    icon: (
-      <svg
-        className="h-5 w-5"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1.5}
-          d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-        />
-      </svg>
-    ),
-  },
-  {
-    label: "Analytics",
-    href: "/dashboard/analytics",
-    icon: (
-      <svg
-        className="h-5 w-5"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1.5}
-          d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-        />
-      </svg>
-    ),
-  },
-  {
-    label: "Billing",
-    href: "/dashboard/billing",
-    icon: (
-      <svg
-        className="h-5 w-5"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={1.5}
-          d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-        />
-      </svg>
-    ),
-  },
+  { label: "Agent", href: "/chat", icon: ChatIcon },
+  { label: "Overview", href: "/dashboard", icon: GridIcon },
+  { label: "Bookings", href: "/dashboard/bookings", icon: CalendarIcon },
+  { label: "Properties", href: "/dashboard/properties", icon: HomeIcon },
+  { label: "Analytics", href: "/dashboard/analytics", icon: ChartIcon },
+  { label: "Billing", href: "/dashboard/billing", icon: CardIcon },
 ];
 
-export function Sidebar({
-  open,
-  onClose,
-}: {
-  open?: boolean;
-  onClose?: () => void;
-}) {
+function NavLinks({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
   const pathname = usePathname();
-
-  const sidebarContent = (
-    <nav className="flex flex-col gap-1 p-3">
-      {navItems.map((item) => {
-        const isActive =
-          pathname === item.href ||
-          (item.href !== "/dashboard" && pathname.startsWith(item.href));
-
+  return (
+    <nav className="flex flex-col gap-0.5">
+      {!collapsed && <p className="eyebrow mb-2 px-3 text-gray-400">Workspace</p>}
+      {navItems.map(({ label, href, icon: Icon }) => {
+        const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
         return (
           <Link
-            key={item.href}
-            href={item.href}
-            onClick={onClose}
-            className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-              isActive
-                ? "bg-indigo-50 text-indigo-700"
-                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-            }`}
+            key={href}
+            href={href}
+            onClick={onNavigate}
+            title={collapsed ? label : undefined}
+            className={`group flex items-center gap-3 rounded-xl py-2 text-[14px] transition-colors ${
+              collapsed ? "justify-center px-0" : "px-3"
+            } ${active ? "bg-sand font-medium text-ink" : "text-gray-600 hover:bg-gray-100 hover:text-ink"}`}
           >
-            {item.icon}
-            {item.label}
+            <Icon className="h-[18px] w-[18px] shrink-0" />
+            {!collapsed && <span className="truncate">{label}</span>}
           </Link>
         );
       })}
     </nav>
   );
+}
 
+function UserBlock({ collapsed }: { collapsed: boolean }) {
+  const { user, logout } = useAuth();
+  const initial = user?.name?.charAt(0)?.toUpperCase() || "?";
+  return (
+    <div className={`flex items-center gap-2.5 rounded-xl ${collapsed ? "flex-col" : "p-1.5"}`}>
+      {user?.avatar_url ? (
+        <img src={user.avatar_url} alt="" className="h-8 w-8 shrink-0 rounded-full" />
+      ) : (
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ink font-serif text-[15px] text-cream">
+          {initial}
+        </span>
+      )}
+      {!collapsed && (
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[13px] font-medium text-ink">{user?.name || "Loading…"}</p>
+          <p className="truncate text-[12px] text-gray-500">{user?.email}</p>
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={logout}
+        title="Sign out"
+        className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-ink"
+      >
+        <LogoutIcon className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
+
+export function Sidebar({
+  open,
+  onClose,
+  collapsed = false,
+  onToggleCollapse,
+}: {
+  open?: boolean;
+  onClose?: () => void;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
+}) {
   return (
     <>
-      {/* Mobile overlay */}
-      {open && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
-          onClick={onClose}
-        />
-      )}
-
-      {/* Mobile sidebar */}
+      {/* Mobile drawer */}
+      {open && <div className="fixed inset-0 z-40 bg-coal/30 backdrop-blur-[2px] lg:hidden" onClick={onClose} />}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 transform border-r border-gray-200 bg-white transition-transform lg:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col bg-cream p-3 shadow-xl transition-transform duration-200 lg:hidden ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex h-16 items-center border-b border-gray-200 px-4">
-          <span className="text-lg font-bold text-indigo-600">
-            VillaOps AI
-          </span>
+        <div className="flex h-12 items-center justify-between px-2">
+          <Logo href="/chat" />
+          <button type="button" onClick={onClose} className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100">
+            <CloseIcon className="h-4 w-4" />
+          </button>
         </div>
-        {sidebarContent}
+        <div className="mt-4 flex-1">
+          <NavLinks collapsed={false} onNavigate={onClose} />
+        </div>
+        <UserBlock collapsed={false} />
       </aside>
 
-      {/* Desktop sidebar */}
-      <aside className="hidden w-64 shrink-0 border-r border-gray-200 bg-white lg:block">
-        {sidebarContent}
+      {/* Desktop rail */}
+      <aside
+        className={`hidden shrink-0 flex-col border-r border-gray-200/70 bg-cream p-3 transition-[width] duration-200 ease-out lg:flex ${
+          collapsed ? "w-[68px]" : "w-60"
+        }`}
+      >
+        <div className={`flex h-12 items-center ${collapsed ? "justify-center" : "justify-between pl-2"}`}>
+          {collapsed ? (
+            <Link href="/chat" title="VillaOps" className="text-ink">
+              <LogoMark className="h-6 w-6" />
+            </Link>
+          ) : (
+            <Logo href="/chat" />
+          )}
+          {!collapsed && (
+            <button
+              type="button"
+              onClick={onToggleCollapse}
+              title="Collapse sidebar"
+              aria-label="Collapse sidebar"
+              className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-ink"
+            >
+              <PanelLeftIcon />
+            </button>
+          )}
+        </div>
+
+        {collapsed && (
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            title="Expand sidebar"
+            aria-label="Expand sidebar"
+            className="mx-auto mt-2 rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-ink"
+          >
+            <PanelLeftIcon />
+          </button>
+        )}
+
+        <div className="mt-5 flex-1">
+          <NavLinks collapsed={collapsed} />
+        </div>
+
+        <UserBlock collapsed={collapsed} />
       </aside>
     </>
   );

@@ -56,6 +56,19 @@ def _get_period(stripe_sub: stripe.Subscription) -> tuple[datetime | None, datet
     return None, None
 
 
+def _get_invoice_subscription_id(invoice) -> str | None:
+    """Extract the subscription ID from an invoice.
+
+    Since Stripe API 2025-03-31 (basil), invoice.subscription moved to
+    invoice.parent.subscription_details.subscription. Falls back to the
+    legacy field for older API versions.
+    """
+    parent = getattr(invoice, "parent", None)
+    details = getattr(parent, "subscription_details", None) if parent else None
+    subscription_id = getattr(details, "subscription", None) if details else None
+    return subscription_id or getattr(invoice, "subscription", None)
+
+
 async def handle_checkout_session_completed(
     db: AsyncSession, event: stripe.Event
 ) -> None:
@@ -120,7 +133,7 @@ async def handle_checkout_session_completed(
 async def handle_invoice_paid(db: AsyncSession, event: stripe.Event) -> None:
     """Handle invoice.paid — confirm active status and update billing period."""
     invoice = event.data.object
-    subscription_id = getattr(invoice, "subscription", None)
+    subscription_id = _get_invoice_subscription_id(invoice)
 
     if not subscription_id:
         logger.info("Invoice %s has no subscription (one-time), skipping", invoice.id)
@@ -227,7 +240,7 @@ async def handle_invoice_payment_failed(
 ) -> None:
     """Handle invoice.payment_failed — mark subscription as past_due."""
     invoice = event.data.object
-    subscription_id = getattr(invoice, "subscription", None)
+    subscription_id = _get_invoice_subscription_id(invoice)
 
     if not subscription_id:
         logger.info(

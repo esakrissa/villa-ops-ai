@@ -4,12 +4,10 @@ import Link from "next/link";
 
 export default function LoginPage() {
   return (
-    <div className="rounded-xl bg-white p-8 shadow-sm">
-      <div className="mb-6 text-center">
-        <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Sign in to your VillaOps AI account
-        </p>
+    <div>
+      <div className="mb-8">
+        <h1 className="display text-[52px] text-ink">Welcome <em>back</em>.</h1>
+        <p className="mt-3 text-[15px] text-gray-500">Sign in to your VillaOps workspace.</p>
       </div>
 
       <OAuthButtons />
@@ -19,7 +17,7 @@ export default function LoginPage() {
           <div className="w-full border-t border-gray-200" />
         </div>
         <div className="relative flex justify-center text-sm">
-          <span className="bg-white px-2 text-gray-400">or</span>
+          <span className="eyebrow bg-cream px-3 text-gray-400">or</span>
         </div>
       </div>
 
@@ -29,7 +27,7 @@ export default function LoginPage() {
         Don&apos;t have an account?{" "}
         <Link
           href="/register"
-          className="font-medium text-indigo-600 hover:text-indigo-500"
+          className="font-medium text-ink underline underline-offset-2"
         >
           Sign up
         </Link>

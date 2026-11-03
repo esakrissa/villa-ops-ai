@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { PricingCard } from "@/components/billing/PricingCard";
+import { SiteNav } from "@/components/marketing/SiteNav";
+import { SiteFooter } from "@/components/marketing/SiteFooter";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { apiFetch, API_BASE_URL } from "@/lib/api";
 import { isAuthenticated } from "@/lib/auth";
@@ -186,7 +187,7 @@ export default function PricingPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-white">
+    <div className="flex min-h-screen flex-col bg-cream">
       <ConfirmModal
         open={!!confirmPlan}
         title={`Upgrade to ${confirmTarget?.display_name ?? ""}`}
@@ -201,49 +202,20 @@ export default function PricingPage() {
         onCancel={() => setConfirmPlan(null)}
       />
 
-      {/* Header */}
-      <header className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-        <Link href="/" className="text-xl font-bold text-indigo-600">
-          VillaOps AI
-        </Link>
-        <div className="flex items-center gap-3">
-          {authed ? (
-            <Link
-              href="/chat"
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-500"
-            >
-              Go to app
-            </Link>
-          ) : (
-            <>
-              <Link
-                href="/login"
-                className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
-              >
-                Sign in
-              </Link>
-              <Link
-                href="/register"
-                className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-500"
-              >
-                Get started
-              </Link>
-            </>
-          )}
-        </div>
-      </header>
+      <SiteNav appHref={authed ? "/chat" : undefined} />
 
       {/* Pricing Content */}
       <main className="flex flex-1 flex-col items-center px-6 py-16">
-        <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
-          Simple, transparent pricing
+        <p className="eyebrow text-gray-600">Pricing</p>
+        <h1 className="display mt-5 max-w-3xl text-center text-[56px] text-ink sm:text-[80px]">
+          Designed to scale, <em>without</em> locking you in.
         </h1>
-        <p className="mt-4 max-w-lg text-center text-lg text-gray-500">
-          Start for free, upgrade when you need more. No hidden fees.
+        <p className="mt-6 max-w-lg text-center text-lg text-gray-600">
+          Start free with one villa. Upgrade when the agent is doing more of your work. No hidden fees.
         </p>
 
         {error && (
-          <div className="mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
           </div>
         )}
@@ -253,12 +225,12 @@ export default function PricingPage() {
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="h-96 w-80 animate-pulse rounded-2xl bg-gray-100"
+                className="h-[520px] w-80 animate-pulse rounded-[28px] bg-sand"
               />
             ))}
           </div>
         ) : (
-          <div className="mt-16 grid max-w-5xl grid-cols-1 gap-8 md:grid-cols-3">
+          <div className="mt-16 grid w-full max-w-6xl grid-cols-1 gap-4 md:grid-cols-3">
             {plans.map((plan) => (
               <PricingCard
                 key={plan.name}
@@ -279,10 +251,7 @@ export default function PricingPage() {
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-gray-200 py-6 text-center text-sm text-gray-400">
-        VillaOps AI &mdash; Built with Next.js, FastAPI, and LangGraph
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

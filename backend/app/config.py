@@ -58,10 +58,17 @@ class Settings(BaseSettings):
     stripe_business_price_id: str = ""
 
     # LLM (LiteLLM)
-    default_llm_model: str = "gemini/gemini-3-flash-preview"
+    default_llm_model: str = "gemini/gemini-3.5-flash"
     gemini_api_key: str = ""
+    # Free-tier Gemini models tried in order when the default model is overloaded (503)
+    gemini_fallback_models: list[str] = [
+        "gemini/gemini-3-flash-preview",
+        "gemini/gemini-3.1-flash-lite",
+    ]
     anthropic_api_key: str = ""
     openai_api_key: str = ""
+    openrouter_api_key: str = ""
+    openrouter_fallback_model: str = "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free"
     litellm_cache_enabled: bool = True
 
     # MCP Server

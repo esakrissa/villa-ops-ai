@@ -48,6 +48,7 @@ interface UseChatReturn {
   sendMessage: (message: string) => Promise<void>;
   resumeConversation: (action: "approve" | "cancel") => Promise<void>;
   clearMessages: () => void;
+  stopGeneration: () => void;
   setConversationId: (id: string | null) => void;
   loadConversation: (id: string) => Promise<void>;
 }
@@ -635,6 +636,14 @@ export function useChat(): UseChatReturn {
     }
   }, []);
 
+  const stopGeneration = useCallback(() => {
+    abortRef.current?.abort();
+    setIsLoading(false);
+    setMessages((prev) =>
+      prev.map((m) => (m.isStreaming ? { ...m, isStreaming: false } : m)),
+    );
+  }, []);
+
   const clearMessages = useCallback(() => {
     abortRef.current?.abort();
     setMessages([]);
@@ -650,6 +659,7 @@ export function useChat(): UseChatReturn {
     sendMessage,
     resumeConversation,
     clearMessages,
+    stopGeneration,
     setConversationId,
     loadConversation,
   };

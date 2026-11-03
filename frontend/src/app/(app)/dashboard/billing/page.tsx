@@ -5,9 +5,9 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { useSubscription } from "@/lib/hooks/useSubscription";
 import { apiFetch } from "@/lib/api";
-import { PlanBadge } from "@/components/billing/PlanBadge";
 import { UsageMeter } from "@/components/billing/UsageMeter";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { CheckIcon } from "@/components/ui/icons";
 
 function formatBillingDate(isoDate: string): string {
   return new Date(isoDate).toLocaleDateString("en-US", {
@@ -17,12 +17,12 @@ function formatBillingDate(isoDate: string): string {
   });
 }
 
-const upgradeOptions: Record<string, { name: string; display: string; price: string }[]> = {
+const upgradeOptions: Record<string, { name: string; display: string; price: string; blurb: string }[]> = {
   free: [
-    { name: "pro", display: "Pro", price: "$29/mo" },
-    { name: "business", display: "Business", price: "$79/mo" },
+    { name: "pro", display: "Pro", price: "$29/mo", blurb: "Up to 5 villas, 500 AI queries, analytics export." },
+    { name: "business", display: "Business", price: "$79/mo", blurb: "Unlimited villas and AI queries, priority support." },
   ],
-  pro: [{ name: "business", display: "Business", price: "$79/mo" }],
+  pro: [{ name: "business", display: "Business", price: "$79/mo", blurb: "Unlimited villas and AI queries, priority support." }],
   business: [],
 };
 
@@ -115,15 +115,11 @@ export default function BillingPage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div>
-          <div className="h-8 w-64 animate-pulse rounded bg-gray-200" />
-          <div className="mt-2 h-4 w-96 animate-pulse rounded bg-gray-200" />
+        <div className="h-14 w-72 animate-pulse rounded-2xl bg-gray-100" />
+        <div className="grid gap-4 lg:grid-cols-5">
+          <div className="h-80 animate-pulse rounded-[28px] bg-gray-100 lg:col-span-3" />
+          <div className="h-80 animate-pulse rounded-[28px] bg-gray-100 lg:col-span-2" />
         </div>
-        <div className="grid gap-6 lg:grid-cols-2">
-          <div className="h-64 animate-pulse rounded-lg border border-gray-200 bg-gray-50" />
-          <div className="h-64 animate-pulse rounded-lg border border-gray-200 bg-gray-50" />
-        </div>
-        <div className="h-20 animate-pulse rounded-lg border border-gray-200 bg-gray-50" />
       </div>
     );
   }
@@ -131,19 +127,10 @@ export default function BillingPage() {
   if (error || !subscription) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Billing & Subscription
-          </h1>
-        </div>
-        <div className="rounded-lg border border-red-200 bg-red-50 p-6">
-          <p className="text-sm text-red-700">
-            {error || "Failed to load subscription data."}
-          </p>
-          <button
-            onClick={refetch}
-            className="mt-3 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-500"
-          >
+        <h1 className="display text-[44px] text-ink">Billing</h1>
+        <div className="panel p-6">
+          <p className="text-sm text-red-700">{error || "Failed to load subscription data."}</p>
+          <button type="button" onClick={refetch} className="btn-ink mt-4 !py-2">
             Retry
           </button>
         </div>
@@ -152,19 +139,15 @@ export default function BillingPage() {
   }
 
   const { plan, usage } = subscription;
-  const priceDisplay =
-    plan.price_monthly_cents === 0
-      ? "Free"
-      : `$${(plan.price_monthly_cents / 100).toFixed(0)}/month`;
+  const price = plan.price_monthly_cents === 0 ? "$0" : `$${(plan.price_monthly_cents / 100).toFixed(0)}`;
   const upgrades = upgradeOptions[plan.name] ?? [];
-
   const features = [
     plan.max_properties === null
       ? "Unlimited properties"
       : `Up to ${plan.max_properties} ${plan.max_properties === 1 ? "property" : "properties"}`,
     plan.max_ai_queries_per_month === null
       ? "Unlimited AI queries"
-      : `${plan.max_ai_queries_per_month} AI queries/month`,
+      : `${plan.max_ai_queries_per_month} AI queries / month`,
     ...(plan.has_analytics_export ? ["Analytics export"] : []),
     ...(plan.has_notifications ? ["Email notifications"] : []),
   ];
@@ -188,193 +171,115 @@ export default function BillingPage() {
         }}
         onCancel={() => setConfirmPlan(null)}
       />
+
       {/* Header */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold text-gray-900">
-            Billing & Subscription
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="eyebrow text-gray-500">Billing</p>
+          <h1 className="display mt-2 text-[44px] text-ink">
+            Plan &amp; <em>usage</em>.
           </h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Manage your plan, usage, and billing.
-          </p>
         </div>
-        <PlanBadge planName={plan.name} displayName={plan.display_name} />
+        <Link href="/pricing" className="btn-sand !py-2">
+          Compare all plans
+        </Link>
       </div>
 
       {/* Cancel warning */}
       {subscription.cancel_at_period_end && subscription.current_period_end && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-          <p className="text-sm text-amber-800">
-            Your subscription will end on{" "}
-            <span className="font-semibold">
-              {formatBillingDate(subscription.current_period_end)}
-            </span>
-            . You&apos;ll be downgraded to the Free plan.{" "}
-            <button
-              onClick={handlePortal}
-              className="font-semibold text-amber-900 underline hover:no-underline"
-            >
-              Reactivate
-            </button>
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-linen px-5 py-4 text-[14px] text-ink">
+          <p>
+            Your subscription ends on <strong>{formatBillingDate(subscription.current_period_end)}</strong>. You&apos;ll
+            move to the Free plan after that.
           </p>
+          <button type="button" onClick={handlePortal} className="btn-ink !py-1.5 !text-[13px]">
+            Reactivate
+          </button>
         </div>
       )}
 
-      {/* Plan + Usage */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Current Plan Card */}
-        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900">Current Plan</h2>
-
-          <div className="mt-4 flex items-baseline gap-3">
-            <PlanBadge planName={plan.name} displayName={plan.display_name} />
-            <span className="text-2xl font-bold text-gray-900">
-              {priceDisplay}
+      <div className="grid gap-4 lg:grid-cols-5">
+        {/* Current plan */}
+        <section className="flex flex-col rounded-[28px] bg-coal p-7 text-cream lg:col-span-3">
+          <div className="flex items-center justify-between">
+            <p className="eyebrow text-cream/50">Current plan</p>
+            <span className="rounded-full bg-white/10 px-3 py-1 text-[12px] capitalize text-cream/85">
+              {subscription.status}
             </span>
           </div>
-
-          <div className="mt-4 space-y-2 text-sm text-gray-600">
-            <div className="flex items-center gap-2">
-              <span className="text-gray-400">Status:</span>
-              <span
-                className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
-                  subscription.status === "active"
-                    ? "bg-green-100 text-green-700"
-                    : subscription.status === "trialing"
-                      ? "bg-blue-100 text-blue-700"
-                      : "bg-gray-100 text-gray-700"
-                }`}
-              >
-                {subscription.status.charAt(0).toUpperCase() +
-                  subscription.status.slice(1)}
-              </span>
-            </div>
-
-            {subscription.current_period_start &&
-              subscription.current_period_end && (
-                <>
-                  <div>
-                    <span className="text-gray-400">Billing period: </span>
-                    {formatBillingDate(subscription.current_period_start)} &mdash;{" "}
-                    {formatBillingDate(subscription.current_period_end)}
-                  </div>
-                  <div>
-                    <span className="text-gray-400">Next billing: </span>
-                    {formatBillingDate(subscription.current_period_end)}
-                  </div>
-                </>
-              )}
+          <div className="mt-6 flex flex-wrap items-end justify-between gap-4">
+            <h2 className="display text-[72px] leading-none">{plan.display_name}</h2>
+            <p className="flex items-baseline gap-1.5">
+              <span className="display text-[44px] leading-none">{price}</span>
+              <span className="text-[14px] text-cream/55">/ month</span>
+            </p>
           </div>
 
-          <ul className="mt-6 space-y-2">
+          {subscription.current_period_start && subscription.current_period_end && (
+            <p className="mt-3 text-[13px] text-cream/60">
+              Billing period {formatBillingDate(subscription.current_period_start)} –{" "}
+              {formatBillingDate(subscription.current_period_end)} · Renews{" "}
+              {formatBillingDate(subscription.current_period_end)}
+            </p>
+          )}
+
+          <ul className="mt-8 grid gap-3 border-t border-white/10 pt-6 sm:grid-cols-2">
             {features.map((f) => (
-              <li
-                key={f}
-                className="flex items-start gap-2 text-sm text-gray-600"
-              >
-                <svg
-                  className="mt-0.5 h-4 w-4 shrink-0 text-indigo-600"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2.5}
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M4.5 12.75l6 6 9-13.5"
-                  />
-                </svg>
-                <span>{f}</span>
+              <li key={f} className="flex items-center gap-2.5 text-[14px] text-cream/85">
+                <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-cream text-coal">
+                  <CheckIcon className="h-2.5 w-2.5" />
+                </span>
+                {f}
               </li>
             ))}
           </ul>
-        </div>
 
-        {/* Usage Card */}
-        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-gray-900">Usage</h2>
-
-          <div className="mt-6 space-y-6">
-            <UsageMeter
-              label="AI Queries"
-              used={usage.ai_queries_used}
-              limit={usage.ai_queries_limit}
-              icon={
-                <svg
-                  className="h-4 w-4 text-gray-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 0 1-2.555-.337A5.972 5.972 0 0 1 5.41 20.97a5.969 5.969 0 0 1-.474-.065 4.48 4.48 0 0 0 .978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25Z"
-                  />
-                </svg>
-              }
-            />
-
-            <UsageMeter
-              label="Properties"
-              used={usage.properties_used}
-              limit={usage.properties_limit}
-              icon={
-                <svg
-                  className="h-4 w-4 text-gray-400"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M8.25 21v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21m0 0h4.5V3.545M12.75 21h7.5V10.75M2.25 21h1.5m18 0h-18M2.25 9l4.5-1.636M18.75 3l-1.5.545m0 6.205 3 1m1.5.5-1.5-.5M6.75 7.364V3h-3v18m3-13.636 10.5-3.819"
-                  />
-                </svg>
-              }
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Actions */}
-      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-wrap items-center gap-3">
           {subscription.stripe_subscription_id && (
             <button
+              type="button"
               onClick={handlePortal}
               disabled={portalLoading}
-              className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="mt-8 self-start rounded-full bg-cream px-5 py-2.5 text-[14px] font-medium text-coal transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {portalLoading ? "Opening..." : "Manage Subscription"}
+              {portalLoading ? "Opening…" : "Manage subscription"}
             </button>
           )}
+        </section>
 
+        {/* Usage */}
+        <section className="panel flex flex-col p-7 lg:col-span-2">
+          <p className="eyebrow text-gray-500">This month</p>
+          <div className="mt-6 flex flex-1 flex-col justify-between gap-8">
+            <UsageMeter label="AI queries" used={usage.ai_queries_used} limit={usage.ai_queries_limit} />
+            <UsageMeter label="Properties" used={usage.properties_used} limit={usage.properties_limit} />
+          </div>
+        </section>
+      </div>
+
+      {/* Upgrade options */}
+      {upgrades.length > 0 && (
+        <div className="grid gap-4 md:grid-cols-2">
           {upgrades.map((upgrade) => (
+            <div key={upgrade.name} className="flex flex-col justify-between gap-6 rounded-[28px] bg-sand p-7">
+              <div>
+                <div className="flex items-baseline justify-between gap-3">
+                  <h3 className="display text-[36px] leading-none text-ink">{upgrade.display}</h3>
+                  <span className="text-[14px] text-gray-600">{upgrade.price}</span>
+                </div>
+                <p className="mt-3 text-[14px] text-gray-600">{upgrade.blurb}</p>
+              </div>
               <button
-                key={upgrade.name}
+                type="button"
                 onClick={() => handleUpgrade(upgrade.name)}
                 disabled={upgradeLoading === upgrade.name}
-                className="rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+                className="btn-ink self-start disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {upgradeLoading === upgrade.name
-                  ? "Upgrading..."
-                  : `Upgrade to ${upgrade.display} (${upgrade.price})`}
+                {upgradeLoading === upgrade.name ? "Upgrading…" : `Upgrade to ${upgrade.display}`}
               </button>
+            </div>
           ))}
-
-          <Link
-            href="/pricing"
-            className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
-          >
-            Compare all plans &rarr;
-          </Link>
         </div>
-      </div>
+      )}
     </div>
   );
 }

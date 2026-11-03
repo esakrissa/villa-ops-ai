@@ -1,13 +1,38 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import { ChatWindow } from "@/components/chat/ChatWindow";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ConversationSidebar } from "@/components/chat/ConversationSidebar";
+import { ChatsIcon, CloseIcon, PenIcon } from "@/components/ui/icons";
+import { useAuth } from "@/lib/hooks/useAuth";
 import { useChat } from "@/lib/hooks/useChat";
 import { useConversations } from "@/lib/hooks/useConversations";
+import { useMediaQuery, usePersistentState } from "@/lib/hooks/usePersistentState";
+
+const suggestions = [
+  { title: "Today's check-ins", prompt: "Show me today's check-ins" },
+  { title: "Occupancy this month", prompt: "What's the occupancy rate this month?" },
+  { title: "Find a guest", prompt: "Search for guest Sarah Chen" },
+  { title: "Upcoming arrivals", prompt: "Which guests are arriving in the next 7 days?" },
+];
+
+function greeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
+}
+
+const noopSubscribe = () => () => {};
+
+/** Time-of-day greeting in the viewer's timezone (neutral on the server). */
+function useGreeting(): string {
+  return useSyncExternalStore(noopSubscribe, greeting, () => "Hello");
+}
 
 export default function ChatPage() {
+  const { user } = useAuth();
   const {
     messages,
     isLoading,
@@ -16,6 +41,7 @@ export default function ChatPage() {
     sendMessage,
     resumeConversation,
     clearMessages,
+    stopGeneration,
     loadConversation,
   } = useChat();
   const {
@@ -26,60 +52,51 @@ export default function ChatPage() {
     deleteConversation,
   } = useConversations();
 
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [showError, setShowError] = useState(true);
+  // Desktop remembers the history panel; on mobile it's an overlay that starts closed
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const [desktopHistoryOpen, setDesktopHistoryOpen] = usePersistentState("villaops.history.open", true);
+  const [mobileHistoryOpen, setMobileHistoryOpen] = useState(false);
+  const historyOpen = isDesktop ? desktopHistoryOpen : mobileHistoryOpen;
+  const setHistoryOpen = isDesktop ? setDesktopHistoryOpen : setMobileHistoryOpen;
+  const [dismissedError, setDismissedError] = useState<string | null>(null);
   const prevConvIdRef = useRef<string | null>(null);
 
-  // Refresh sidebar when a new conversation is created (conversationId changes from null to a value)
+  // Refresh history when a new conversation is created
   useEffect(() => {
-    if (
-      conversationId &&
-      prevConvIdRef.current !== conversationId &&
-      !isLoading
-    ) {
+    if (conversationId && prevConvIdRef.current !== conversationId && !isLoading) {
       fetchConversations();
     }
     prevConvIdRef.current = conversationId;
   }, [conversationId, isLoading, fetchConversations]);
 
-  // Reset showError when error changes
-  useEffect(() => {
-    if (error) setShowError(true);
-  }, [error]);
-
   const handleSelectConversation = useCallback(
     (id: string) => {
-      if (id !== conversationId) {
-        loadConversation(id);
-      }
+      if (id !== conversationId) loadConversation(id);
     },
     [conversationId, loadConversation],
   );
 
-  const handleNewChat = useCallback(() => {
-    clearMessages();
-  }, [clearMessages]);
-
   const handleDelete = useCallback(
     (id: string) => {
       deleteConversation(id);
-      // If the deleted conversation was active, clear the chat
-      if (id === conversationId) {
-        clearMessages();
-      }
+      if (id === conversationId) clearMessages();
     },
     [deleteConversation, conversationId, clearMessages],
   );
 
+  const isEmpty = messages.length === 0 && !isLoading;
+  const title = conversations.find((c) => c.id === conversationId)?.title;
+  const firstName = user?.name?.split(" ")[0];
+  const hello = useGreeting();
+
   return (
-    <div className="-m-4 md:-m-6 flex h-[calc(100%+2rem)] md:h-[calc(100%+3rem)]">
-      {/* Conversation sidebar */}
+    <div className="flex h-full">
       <ConversationSidebar
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
+        isOpen={historyOpen}
+        onClose={() => setHistoryOpen(false)}
         activeConversationId={conversationId}
         onSelectConversation={handleSelectConversation}
-        onNewChat={handleNewChat}
+        onNewChat={clearMessages}
         conversations={conversations}
         loading={convsLoading}
         error={convsError}
@@ -87,89 +104,89 @@ export default function ChatPage() {
         onRefresh={fetchConversations}
       />
 
-      {/* Main chat area */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        {/* Chat header */}
-        <div className="flex items-center gap-2 border-b border-gray-200 bg-white px-4 py-2">
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="rounded-md p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700"
-            title="Conversation history"
-          >
-            <svg
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
+      <div className="relative flex min-w-0 flex-1 flex-col bg-cream">
+        {/* Top bar */}
+        <div className="flex h-14 shrink-0 items-center gap-1 px-3">
+          {!historyOpen && (
+            <button
+              type="button"
+              onClick={() => setHistoryOpen(true)}
+              title="Show history"
+              aria-label="Show history"
+              className="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-ink"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
-              />
-            </svg>
-          </button>
-          <button
-            onClick={handleNewChat}
-            className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-800"
-          >
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-              stroke="currentColor"
+              <ChatsIcon />
+            </button>
+          )}
+          {!historyOpen && (
+            <button
+              type="button"
+              onClick={clearMessages}
+              title="New chat"
+              aria-label="New chat"
+              className="rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-ink"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 4.5v15m7.5-7.5h-15"
-              />
-            </svg>
-            New Chat
-          </button>
+              <PenIcon />
+            </button>
+          )}
+          <p className="ml-2 min-w-0 truncate text-[14px] text-gray-600">
+            {isEmpty ? (
+              <span className="eyebrow text-gray-400">New conversation</span>
+            ) : (
+              title || "Conversation"
+            )}
+          </p>
         </div>
 
-        {/* Error banner */}
-        {error && showError && (
-          <div className="flex items-center justify-between border-b border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">
+        {error && error !== dismissedError && (
+          <div className="mx-auto mt-1 flex w-full max-w-3xl items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-[13px] text-red-700">
             <span>{error}</span>
-            <button
-              onClick={() => setShowError(false)}
-              className="ml-4 text-red-500 hover:text-red-700"
-            >
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={2}
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M6 18 18 6M6 6l12 12"
-                />
-              </svg>
+            <button type="button" onClick={() => setDismissedError(error)} className="text-red-400 hover:text-red-700">
+              <CloseIcon className="h-4 w-4" />
             </button>
           </div>
         )}
 
-        {/* Message list */}
-        <div className="flex-1 overflow-hidden bg-gray-50">
-          <ChatWindow
-            messages={messages}
-            isLoading={isLoading}
-            onSuggestionClick={sendMessage}
-            onResumeConversation={resumeConversation}
-          />
-        </div>
-
-        {/* Input area */}
-        <div className="border-t border-gray-200 bg-white px-4 py-4">
-          <ChatInput onSend={sendMessage} disabled={isLoading} />
-        </div>
+        {isEmpty ? (
+          /* Welcome: greeting + centred composer + suggestions */
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4">
+            <div className="mx-auto my-auto w-full max-w-3xl py-10">
+              <p className="eyebrow text-center text-gray-500">VillaOps agent</p>
+              <h1 className="display mt-4 text-center text-[44px] text-ink sm:text-[56px]">
+                {hello}
+                {firstName ? `, ${firstName}` : ""}.
+                <br />
+                <em>What needs doing?</em>
+              </h1>
+              <div className="mt-10">
+                <ChatInput onSend={sendMessage} isLoading={isLoading} onStop={stopGeneration} autoFocus />
+              </div>
+              <div className="mx-auto mt-6 grid max-w-3xl grid-cols-1 gap-2 sm:grid-cols-2">
+                {suggestions.map((s) => (
+                  <button
+                    key={s.prompt}
+                    type="button"
+                    onClick={() => sendMessage(s.prompt)}
+                    className="group rounded-2xl border border-gray-200 bg-white/60 px-4 py-3 text-left transition-colors hover:border-gray-300 hover:bg-white"
+                  >
+                    <span className="block text-[14px] font-medium text-ink">{s.title}</span>
+                    <span className="block truncate text-[13px] text-gray-500">{s.prompt}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <ChatWindow messages={messages} onResumeConversation={resumeConversation} />
+            </div>
+            <div className="relative shrink-0 px-4 pb-4">
+              <div className="pointer-events-none absolute inset-x-0 -top-8 h-8 bg-gradient-to-t from-cream to-transparent" />
+              <ChatInput onSend={sendMessage} isLoading={isLoading} onStop={stopGeneration} placeholder="Reply to VillaOps…" />
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

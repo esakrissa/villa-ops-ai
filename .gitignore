@@ -9,6 +9,10 @@ todos/
 prompts/
 .claude/
 screenshots/
+demos/
+*.mp4
+*.mov
+*.webm
 
 # Python
 __pycache__/

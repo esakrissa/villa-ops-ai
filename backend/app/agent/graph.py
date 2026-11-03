@@ -47,6 +47,8 @@ async def create_agent(checkpointer=None):
         os.environ["ANTHROPIC_API_KEY"] = settings.anthropic_api_key
     if settings.openai_api_key:
         os.environ["OPENAI_API_KEY"] = settings.openai_api_key
+    if settings.openrouter_api_key:
+        os.environ["OPENROUTER_API_KEY"] = settings.openrouter_api_key
 
     # Build list of MCP server URLs
     # Primary: VillaOps MCP server (docker-compose overrides to http://mcp:8001/mcp)
@@ -65,29 +67,36 @@ async def create_agent(checkpointer=None):
     # Build fallback model list for LiteLLM — if the primary model is
     # unreachable, requests are retried against the next available provider.
     fallback_models = []
+    if settings.gemini_api_key:
+        fallback_models.extend(m for m in settings.gemini_fallback_models if m != settings.default_llm_model)
     if settings.anthropic_api_key:
         fallback_models.append("anthropic/claude-sonnet-4-20250514")
     if settings.openai_api_key:
         fallback_models.append("openai/gpt-4o-mini")
+    if settings.openrouter_api_key:
+        fallback_models.append(settings.openrouter_fallback_model)
 
-    model_kwargs = {}
     if fallback_models:
-        model_kwargs["fallbacks"] = fallback_models
-        logger.info("LiteLLM fallbacks configured: %s", fallback_models)
+        logger.info("LLM fallbacks configured: %s", fallback_models)
 
-    # Create LLM via LiteLLM (supports Gemini, Claude, GPT via unified API)
-    llm = ChatLiteLLM(
-        model=settings.default_llm_model,
-        temperature=1.0,
-        max_tokens=4096,
-        **model_kwargs,
-    )
+    # Create one LLM per model via LiteLLM (supports Gemini, Claude, GPT via
+    # unified API). The agent node chains them with LangChain's with_fallbacks(),
+    # which (unlike LiteLLM's `fallbacks` kwarg) also works while streaming.
+    llms = [
+        ChatLiteLLM(
+            model=model,
+            temperature=1.0,
+            max_tokens=4096,
+            max_retries=2,
+        )
+        for model in [settings.default_llm_model, *fallback_models]
+    ]
 
     # Build the graph
     graph = StateGraph(AgentState)
 
     # Add nodes
-    agent_node = create_agent_node(llm, tools)
+    agent_node = create_agent_node(llms, tools)
 
     # Use custom tools node with HITL interrupt for destructive operations,
     # falling back to standard ToolNode for non-destructive tools

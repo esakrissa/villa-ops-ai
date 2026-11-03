@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { humanizeToolName } from "@/lib/toolLabels";
 
 interface ConfirmationPayload {
   type: string;
@@ -17,114 +18,72 @@ interface ConfirmationCardProps {
   resolvedAction?: "approve" | "cancel";
 }
 
-function formatToolName(name: string): string {
-  return name
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-}
-
-function WarningIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      viewBox="0 0 24 24"
-      strokeWidth={1.5}
-      stroke="currentColor"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"
-      />
-    </svg>
-  );
-}
-
-export function ConfirmationCard({
-  payload,
-  onConfirm,
-  onCancel,
-  isResolved,
-  resolvedAction,
-}: ConfirmationCardProps) {
+/** Human-in-the-loop approval for destructive tool calls. */
+export function ConfirmationCard({ payload, onConfirm, onCancel, isResolved, resolvedAction }: ConfirmationCardProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleConfirm = () => {
-    setIsSubmitting(true);
-    onConfirm();
-  };
-
-  const handleCancel = () => {
-    setIsSubmitting(true);
-    onCancel();
-  };
-
   const disabled = isSubmitting || isResolved;
-
-  // Build a readable summary from the args
-  const argEntries = Object.entries(payload.args).filter(
-    ([key]) => key !== "user_id",
-  );
+  const argEntries = Object.entries(payload.args).filter(([key]) => key !== "user_id");
 
   return (
-    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 shadow-sm">
-      <div className="mb-2 flex items-start gap-2">
-        <WarningIcon className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" />
-        <div>
-          <p className="text-sm font-semibold text-amber-800">
-            {formatToolName(payload.tool_name)}
-          </p>
-          <p className="mt-0.5 text-sm text-amber-700">{payload.message}</p>
-        </div>
+    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_8px_30px_-16px_rgb(47_44_37/0.25)]">
+      <div className="flex items-center gap-2 border-b border-gray-100 bg-linen px-4 py-2.5">
+        <span className={`h-2 w-2 rounded-full ${isResolved ? "bg-gray-400" : "bg-ink"}`} />
+        <p className="eyebrow text-gray-600">{isResolved ? "Decision recorded" : "Approval needed"}</p>
+        <span className="ml-auto font-mono text-[11px] text-gray-400">{payload.tool_name}</span>
       </div>
 
-      {argEntries.length > 0 && (
-        <div className="mb-3 ml-7 rounded-md bg-white/60 px-2.5 py-1.5">
-          <dl className="space-y-0.5">
+      <div className="px-4 py-3.5">
+        <p className="text-[15px] font-medium text-ink">{humanizeToolName(payload.tool_name)}</p>
+        <p className="mt-0.5 text-[14px] text-gray-600">{payload.message}</p>
+
+        {argEntries.length > 0 && (
+          <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 rounded-xl bg-gray-50 px-3 py-2.5 text-[12.5px]">
             {argEntries.map(([key, value]) => (
-              <div key={key} className="flex gap-2 text-xs">
-                <dt className="shrink-0 font-mono text-amber-600">{key}:</dt>
-                <dd className="truncate text-amber-800">
-                  {typeof value === "string" ? value : JSON.stringify(value)}
-                </dd>
+              <div key={key} className="contents">
+                <dt className="font-mono text-gray-400">{key}</dt>
+                <dd className="truncate text-gray-700">{typeof value === "string" ? value : JSON.stringify(value)}</dd>
               </div>
             ))}
           </dl>
-        </div>
-      )}
+        )}
 
-      {isResolved ? (
-        <div className="ml-7">
-          <span
-            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-              resolvedAction === "approve"
-                ? "bg-red-100 text-red-700"
-                : "bg-gray-100 text-gray-600"
-            }`}
-          >
-            {resolvedAction === "approve" ? "Confirmed" : "Cancelled"}
-          </span>
+        <div className="mt-4 flex items-center gap-2">
+          {isResolved ? (
+            <span
+              className={`rounded-full px-3 py-1 text-[12px] font-medium ${
+                resolvedAction === "approve" ? "bg-ink text-cream" : "bg-gray-100 text-gray-600"
+              }`}
+            >
+              {resolvedAction === "approve" ? "Confirmed" : "Cancelled"}
+            </span>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSubmitting(true);
+                  onConfirm();
+                }}
+                disabled={disabled}
+                className="btn-ink !px-4 !py-1.5 !text-[13px] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Confirm
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSubmitting(true);
+                  onCancel();
+                }}
+                disabled={disabled}
+                className="btn-sand !px-4 !py-1.5 !text-[13px] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </>
+          )}
         </div>
-      ) : (
-        <div className="ml-7 flex gap-2">
-          <button
-            onClick={handleConfirm}
-            disabled={disabled}
-            className="rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Confirm
-          </button>
-          <button
-            onClick={handleCancel}
-            disabled={disabled}
-            className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            Cancel
-          </button>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

@@ -1,14 +1,7 @@
 "use client";
 
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { CHART, ChartEmpty, ChartSkeleton, ChartTooltip, axisProps, gridProps } from "./chartTheme";
 
 interface OccupancyData {
   property_name: string;
@@ -24,57 +17,51 @@ interface OccupancyChartProps {
 
 function OccupancyTooltip({ active, payload }: { active?: boolean; payload?: Array<{ payload: OccupancyData }> }) {
   if (!active || !payload?.[0]) return null;
-  const data = payload[0].payload;
+  const d = payload[0].payload;
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-3 shadow-lg">
-      <p className="font-medium text-gray-900">{data.property_name}</p>
-      <p className="text-sm text-indigo-600">
-        {Number(data.occupancy_rate).toFixed(1)}% occupied
-      </p>
-      <p className="text-xs text-gray-500">
-        {data.booked_days} / {data.total_days} days
-      </p>
-    </div>
+    <ChartTooltip
+      title={d.property_name}
+      value={`${Number(d.occupancy_rate).toFixed(1)}%`}
+      detail={`${d.booked_days} of ${d.total_days} nights booked`}
+    />
   );
 }
 
-export function OccupancyChart({ data, loading }: OccupancyChartProps) {
-  if (loading) {
-    return (
-      <div className="h-[300px] w-full animate-pulse rounded bg-gray-100" />
-    );
-  }
+/** "Le Ayu Villa Canggu" → "Le Ayu" — keeps x-axis labels from colliding. */
+function shortName(name: string): string {
+  const words = name.split(" ");
+  const two = words.slice(0, 2).join(" ");
+  return two.length <= 11 ? two : words[0];
+}
 
-  if (data.length === 0) {
-    return (
-      <div className="flex h-[300px] items-center justify-center text-sm text-gray-500">
-        No occupancy data available
-      </div>
-    );
-  }
+export function OccupancyChart({ data, loading }: OccupancyChartProps) {
+  if (loading) return <ChartSkeleton />;
+  if (data.length === 0) return <ChartEmpty label="No occupancy data for this period" />;
+
+  const top = Math.max(...data.map((d) => Number(d.occupancy_rate)));
 
   return (
     <ResponsiveContainer width="100%" height={300}>
-      <BarChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" />
+      <BarChart data={data} margin={{ top: 8, right: 4, left: -16, bottom: 0 }} barCategoryGap="22%">
+        <CartesianGrid {...gridProps} />
         <XAxis
           dataKey="property_name"
-          tick={{ fontSize: 12 }}
-          tickFormatter={(name: string) =>
-            name.length > 15 ? name.slice(0, 15) + "..." : name
-          }
+          {...axisProps}
+          interval={0}
+          tickFormatter={shortName}
         />
-        <YAxis
-          domain={[0, 100]}
-          tickFormatter={(v: number) => `${v}%`}
-          tick={{ fontSize: 12 }}
-        />
-        <Tooltip content={<OccupancyTooltip />} />
+        <YAxis domain={[0, 100]} {...axisProps} tickFormatter={(v: number) => `${v}%`} />
+        <Tooltip content={<OccupancyTooltip />} cursor={{ fill: "rgb(47 44 37 / 0.04)", radius: 12 }} />
         <Bar
           dataKey="occupancy_rate"
-          fill="#6366f1"
-          radius={[4, 4, 0, 0]}
-        />
+          radius={[10, 10, 10, 10]}
+          maxBarSize={56}
+          background={{ fill: "#f6f1e8", radius: 10 }}
+        >
+          {data.map((d) => (
+            <Cell key={d.property_name} fill={Number(d.occupancy_rate) === top ? CHART.ink : CHART.inkSoft} />
+          ))}
+        </Bar>
       </BarChart>
     </ResponsiveContainer>
   );
