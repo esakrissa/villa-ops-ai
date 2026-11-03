@@ -17,12 +17,7 @@ interface MessageBubbleProps {
 
 function Thinking() {
   return (
-    <div className="flex items-center gap-2 py-1.5">
-      <span className="flex gap-1">
-        {[0, 150, 300].map((d) => (
-          <span key={d} className="h-1.5 w-1.5 animate-bounce rounded-full bg-gray-400" style={{ animationDelay: `${d}ms` }} />
-        ))}
-      </span>
+    <div className="py-1.5">
       <span className="shimmer-text text-[14px] font-medium">Thinking</span>
     </div>
   );
