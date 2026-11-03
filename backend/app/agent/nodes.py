@@ -56,8 +56,8 @@ def create_agent_node(
         if user_id:
             system_content += (
                 f"\n\nIMPORTANT: The current user's ID is '{user_id}'. "
-                "You MUST pass this as the 'user_id' parameter in EVERY tool call "
-                "to ensure data isolation. Never omit the user_id parameter."
+                "You MUST pass this as the 'user_id' parameter in EVERY VillaOps tool call "
+                "to ensure data isolation. Never omit the user_id parameter on tools that accept it."
             )
         messages = [SystemMessage(content=system_content)] + state["messages"]
         response = await llm_with_tools.ainvoke(messages)

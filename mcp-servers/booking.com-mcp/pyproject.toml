@@ -1,0 +1,47 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "booking-com-mcp"
+version = "0.2.0"
+description = "MCP server for Booking.com hotel search (RapidAPI booking-com15) over Streamable HTTP"
+readme = "README.md"
+requires-python = ">=3.13"
+license = "MIT"
+authors = [{ name = "Esa Krissa" }]
+dependencies = [
+    "mcp>=2.3.0,<3",
+    "httpx>=0.28.0,<1",
+    "redis[hiredis]>=8.1.0,<9",
+    "uvicorn>=0.54.0,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=9.2.0",
+    "pytest-asyncio>=1.4.0",
+]
+
+[project.scripts]
+booking-com-mcp = "booking_com_mcp.server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/booking_com_mcp"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.ruff]
+target-version = "py313"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "N", "UP", "B", "SIM", "RUF"]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["booking_com_mcp"]

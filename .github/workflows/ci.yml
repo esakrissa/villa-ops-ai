@@ -125,6 +125,36 @@ jobs:
           --cov-fail-under=80
           tests/ -v
 
+  mcp-servers:
+    name: Market MCP Servers (${{ matrix.server }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        server: [booking.com-mcp, airbnb-mcp, tripadvisor-mcp]
+    defaults:
+      run:
+        working-directory: mcp-servers/${{ matrix.server }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]" ruff
+
+      - name: Run ruff
+        run: ruff check --output-format=github src tests
+
+      # Tests use recorded responses in tests/fixtures — no API keys or network needed
+      - name: Run tests
+        run: pytest -q
+
   build:
     name: Build Docker Images
     runs-on: ubuntu-latest

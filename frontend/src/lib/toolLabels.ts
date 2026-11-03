@@ -14,6 +14,13 @@ const LABELS: Record<string, { running: string; done: string }> = {
   property_manage: { running: "Managing property", done: "Managed property" },
   property_delete: { running: "Removing property", done: "Removed property" },
   send_notification: { running: "Sending notification", done: "Sent notification" },
+  booking_search_hotels: { running: "Searching Booking.com", done: "Searched Booking.com" },
+  booking_hotel_details: { running: "Opening Booking.com hotel", done: "Opened Booking.com hotel" },
+  airbnb_search: { running: "Searching Airbnb", done: "Searched Airbnb" },
+  airbnb_listing_details: { running: "Opening Airbnb listing", done: "Opened Airbnb listing" },
+  tripadvisor_search_nearby_locations: { running: "Finding places on Tripadvisor", done: "Found places on Tripadvisor" },
+  tripadvisor_search_locations: { running: "Searching Tripadvisor", done: "Searched Tripadvisor" },
+  tripadvisor_get_location_details: { running: "Opening Tripadvisor place", done: "Opened Tripadvisor place" },
   web_search_exa: { running: "Searching the web", done: "Searched the web" },
   web_fetch_exa: { running: "Reading web page", done: "Read web page" },
 };

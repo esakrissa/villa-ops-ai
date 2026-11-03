@@ -69,3 +69,12 @@ export const CopyIcon = (p: IconProps) => (
 export const LogoutIcon = (p: IconProps) => (
   <Icon {...p} d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
 );
+export const StarIcon = ({ className = "h-3.5 w-3.5" }: IconProps) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M10.79 3.21c.45-1.08 1.97-1.08 2.42 0l1.83 4.4 4.75.38c1.16.1 1.63 1.55.75 2.31l-3.62 3.1 1.1 4.64c.27 1.13-.96 2.03-1.96 1.42L12 17.02l-4.07 2.44c-1 .61-2.23-.29-1.96-1.42l1.1-4.64-3.62-3.1c-.88-.76-.41-2.21.75-2.31l4.75-.38 1.84-4.4Z" />
+  </svg>
+);
+export const ExternalIcon = (p: IconProps) => <Icon {...p} strokeWidth={1.8} d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />;
+export const MapPinIcon = (p: IconProps) => (
+  <Icon {...p} d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" />
+);

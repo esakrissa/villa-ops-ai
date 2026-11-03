@@ -76,6 +76,11 @@ class Settings(BaseSettings):
     # MCP Server
     mcp_server_url: str = "http://localhost:8001/mcp"
 
+    # Market data MCP servers (mcp-servers/ in this repo); empty URL = source disabled
+    booking_mcp_url: str = ""
+    airbnb_mcp_url: str = ""
+    tripadvisor_mcp_url: str = ""
+
     # Exa (Web Search via hosted MCP)
     exa_api_key: str = ""
 

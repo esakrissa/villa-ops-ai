@@ -25,6 +25,7 @@ An AI-powered operations assistant for villa and hotel property managers in Bali
 - **AI Chat with Tool Calling** — LangGraph agent connected to 8 MCP tools over Streamable HTTP, with real-time SSE streaming responses
 - **Full SaaS Billing** — Stripe Checkout, Customer Portal, webhook-driven subscription lifecycle (Free / Pro / Business tiers)
 - **Plan-Gated Usage Limits** — Middleware enforces property limits, AI query quotas, and feature access per plan
+- **Live Market Data with Photo Cards** — Three extra MCP servers in `mcp-servers/` (Booking.com via RapidAPI, Airbnb, Tripadvisor Terra) let the agent benchmark your rates against the market and recommend nearby places; results render as photo cards in the chat
 - **Multi-Provider OAuth** — Google + GitHub OAuth alongside email/password registration with JWT tokens
 - **Real-Time Analytics Dashboard** — Occupancy rates, revenue trends, and booking charts built with Recharts
 - **Multi-Provider LLM Gateway** — LiteLLM routes to Gemini (default), with Anthropic and OpenAI as fallbacks, plus response caching
@@ -220,7 +221,7 @@ The AI agent understands the intent, picks the right MCP tool, executes it, and 
    docker-compose up --build
    ```
 
-   This starts 5 services: FastAPI backend (:8000), MCP server (:8001), Next.js frontend (:3000), PostgreSQL, and Redis.
+   This starts 8 services: FastAPI backend (:8000), VillaOps MCP server (:8001), market-data MCP servers for Booking.com (:8002), Airbnb (:8003) and Tripadvisor (:8004), Next.js frontend (:3000), PostgreSQL, and Redis. The market servers need `RAPIDAPI_KEY` / `TRIPADVISOR_API_KEY` in `.env` (see `.env.example` and each server's README in `mcp-servers/`).
 
 4. **Run database migrations and seed data**
 
@@ -242,6 +243,7 @@ The AI agent understands the intent, picks the right MCP tool, executes it, and 
    | Frontend | [http://localhost:3000](http://localhost:3000) |
    | API Docs (Swagger) | [http://localhost:8000/docs](http://localhost:8000/docs) |
    | MCP Server | [http://localhost:8001/mcp](http://localhost:8001/mcp) |
+   | Market MCP servers | `:8002` Booking.com · `:8003` Airbnb · `:8004` Tripadvisor (each at `/mcp`, health at `/health`) |
 
 ### Running Without Docker
 

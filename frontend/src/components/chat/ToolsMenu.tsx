@@ -8,6 +8,9 @@ import { humanizeToolName } from "@/lib/toolLabels";
 
 const SOURCES: Record<string, string> = {
   villaops: "VillaOps",
+  booking: "Market · Booking.com",
+  airbnb: "Market · Airbnb",
+  tripadvisor: "Places · Tripadvisor",
   exa: "Web search · Exa",
 };
 
@@ -32,7 +35,7 @@ function Switch({ on, onChange, label }: { on: boolean; onChange: () => void; la
   );
 }
 
-/** "15 tools" chip in the composer; opens a menu to switch tools on and off. */
+/** "N tools" chip in the composer; opens a menu to switch tools on and off. */
 export function ToolsMenu() {
   const { tools, loading, error, disabled, toggle, setMany, enabledCount, refresh } = useAgentTools();
   const [open, setOpen] = useState(false);

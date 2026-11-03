@@ -32,6 +32,14 @@ def get_mcp_sources() -> list[tuple[str, str]]:
     """Return ``(source, url)`` pairs for every MCP server the agent uses."""
     # Primary: VillaOps MCP server (docker-compose overrides to http://mcp:8001/mcp)
     sources = [("villaops", settings.mcp_server_url)]
+    # Optional: market data MCP servers (Booking.com, Airbnb, Tripadvisor) from mcp-servers/
+    for source, url in (
+        ("booking", settings.booking_mcp_url),
+        ("airbnb", settings.airbnb_mcp_url),
+        ("tripadvisor", settings.tripadvisor_mcp_url),
+    ):
+        if url:
+            sources.append((source, url))
     # Optional: Exa hosted MCP server for web search
     if settings.exa_api_key:
         sources.append(("exa", f"https://mcp.exa.ai/mcp?exaApiKey={settings.exa_api_key}"))

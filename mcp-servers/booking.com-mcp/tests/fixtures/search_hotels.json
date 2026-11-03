@@ -1,0 +1,351 @@
+{
+ "hotels": [
+  {
+   "hotel_id": 17528873,
+   "accessibilityLabel": "Dika House Ubud.\n\u200eIn city centre\u202c.\nNew to Booking.com.\nBreakfast included.\n Private room : 1\u00a0bed.\nPrice for 3 nights, 2 adults.\nOriginal price 1440000 IDR. Current price 1152000 IDR..\nIncludes taxes and charges.\nWe have 2 left at this price.",
+   "property": {
+    "qualityClass": 0,
+    "ufi": -2701757,
+    "checkoutDate": "2026-12-13",
+    "optOutFromGalleryChanges": 0,
+    "position": 0,
+    "isFirstPage": true,
+    "blockIds": [
+     "1752887301_446861777_2_1_0"
+    ],
+    "accuratePropertyClass": 0,
+    "countryCode": "id",
+    "propertyClass": 0,
+    "priceBreakdown": {
+     "benefitBadges": [],
+     "grossPrice": {
+      "currency": "IDR",
+      "amountRounded": "Rp\u00a01,152,000",
+      "value": 1152000
+     },
+     "chargesInfo": "Includes taxes and charges",
+     "strikethroughPrice": {
+      "amountRounded": "Rp\u00a01,440,000",
+      "value": 1440000,
+      "currency": "IDR"
+     },
+     "taxExceptions": []
+    },
+    "rankingPosition": 0,
+    "reviewCount": 0,
+    "name": "Dika House Ubud",
+    "mainPhotoId": 934690021,
+    "latitude": -8.51298190170618,
+    "longitude": 115.261004609856,
+    "currency": "IDR",
+    "reviewScoreWord": "",
+    "photoUrls": [
+     "https://cf.bstatic.com/xdata/images/hotel/square500/934690021.jpg?k=09ee5c8747156b9ce337fad093601769b3b116c58aec129a5ed7e9b23993e2bb&o=",
+     "https://cf.bstatic.com/xdata/images/hotel/square1024/934690021.jpg?k=09ee5c8747156b9ce337fad093601769b3b116c58aec129a5ed7e9b23993e2bb&o=",
+     "https://cf.bstatic.com/xdata/images/hotel/square2000/934690021.jpg?k=09ee5c8747156b9ce337fad093601769b3b116c58aec129a5ed7e9b23993e2bb&o="
+    ],
+    "recommendedUnitsConfigurationLabel": "<b>Private room</b>: 1\u00a0bed",
+    "reviewScore": 0,
+    "checkinDate": "2026-12-10",
+    "checkin": {
+     "fromTime": "15:00",
+     "untilTime": "18:00"
+    },
+    "id": 17528873,
+    "wishlistName": "Ubud",
+    "checkout": {
+     "fromTime": "08:00",
+     "untilTime": "11:00"
+    }
+   }
+  },
+  {
+   "hotel_id": 6048884,
+   "accessibilityLabel": "Arya Wellness - female only.\n3 out of 5 stars.\n9.4 Superb 1277 reviews.\n\u200eIn city centre\u202c.\n Hotel room : 1\u00a0bed.\nPrice for 3 nights, 2 adults.\n4783201 IDR.\nIncludes taxes and charges.",
+   "property": {
+    "accuratePropertyClass": 3,
+    "rankingPosition": 1,
+    "isTPI": true,
+    "propertyClass": 3,
+    "countryCode": "id",
+    "priceBreakdown": {
+     "grossPrice": {
+      "value": 4783200.61145266,
+      "amountRounded": "Rp\u00a04,783,201",
+      "currency": "IDR"
+     },
+     "benefitBadges": [],
+     "chargesInfo": "Includes taxes and charges",
+     "taxExceptions": []
+    },
+    "mainPhotoId": 240523370,
+    "reviewCount": 1277,
+    "name": "Arya Wellness - female only",
+    "qualityClass": 0,
+    "ufi": -2701757,
+    "checkoutDate": "2026-12-13",
+    "optOutFromGalleryChanges": 0,
+    "blockIds": [
+     "604888401_0_2_0_0"
+    ],
+    "isFirstPage": true,
+    "position": 1,
+    "id": 6048884,
+    "wishlistName": "Ubud",
+    "checkinDate": "2026-12-10",
+    "checkin": {
+     "untilTime": "00:00",
+     "fromTime": "14:00"
+    },
+    "checkout": {
+     "untilTime": "11:00",
+     "fromTime": "00:00"
+    },
+    "latitude": -8.514281,
+    "longitude": 115.260506,
+    "currency": "IDR",
+    "reviewScoreWord": "Superb",
+    "photoUrls": [
+     "https://cf.bstatic.com/xdata/images/hotel/square500/240523370.jpg?k=bccaecba720d0c339f77408827183f1bca84b1345d512d9a37c26b0269d16d8d&o=",
+     "https://cf.bstatic.com/xdata/images/hotel/square1024/240523370.jpg?k=bccaecba720d0c339f77408827183f1bca84b1345d512d9a37c26b0269d16d8d&o=",
+     "https://cf.bstatic.com/xdata/images/hotel/square2000/240523370.jpg?k=bccaecba720d0c339f77408827183f1bca84b1345d512d9a37c26b0269d16d8d&o="
+    ],
+    "recommendedUnitsConfigurationLabel": "<b>Hotel room</b>: 1\u00a0bed",
+    "reviewScore": 9.4
+   }
+  },
+  {
+   "hotel_id": 1271015,
+   "accessibilityLabel": "The Bali Shanti.\n3 out of 5 stars.\n8.8 Fabulous 367 reviews.\n\u200e0.6 km from centre\u202c.\nBreakfast included.\n Entire villa \u2013 28\u00a0m\u00b2 : 1\u00a0bed \u2022 1\u00a0bedroom \u2022 1\u00a0bathroom.\nPrice for 3 nights, 2 adults.\n1650000 IDR.\nIncludes taxes and charges.\nFree cancellation.\nNo prepayment needed.\nWe have 2 left at this price.",
+   "property": {
+    "checkout": {
+     "fromTime": "07:00",
+     "untilTime": "12:00"
+    },
+    "checkin": {
+     "untilTime": "22:00",
+     "fromTime": "14:00"
+    },
+    "checkinDate": "2026-12-10",
+    "id": 1271015,
+    "wishlistName": "Ubud",
+    "recommendedUnitsConfigurationLabel": "<b>Entire villa \u2013 28\u00a0m\u00b2</b>: 1\u00a0bed \u2022 1\u00a0bedroom \u2022 1\u00a0bathroom",
+    "photoUrls": [
+     "https://cf.bstatic.com/xdata/images/hotel/square500/91259561.jpg?k=2a666aa54b74c30953b203426d4b2699cc8eeedd31354cc9a6d5770baa7b4bd9&o=",
+     "https://cf.bstatic.com/xdata/images/hotel/square1024/91259561.jpg?k=2a666aa54b74c30953b203426d4b2699cc8eeedd31354cc9a6d5770baa7b4bd9&o=",
+     "https://cf.bstatic.com/xdata/images/hotel/square2000/91259561.jpg?k=2a666aa54b74c30953b203426d4b2699cc8eeedd31354cc9a6d5770baa7b4bd9&o="
+    ],
+    "reviewScore": 8.8,
+    "latitude": -8.50579184548225,
+    "reviewScoreWord": "Fabulous",
+    "longitude": 115.268639940337,
+    "currency": "IDR",
+    "priceBreakdown": {
+     "grossPrice": {
+      "amountRounded": "Rp\u00a01,650,000",
+      "value": 1650000,
+      "currency": "IDR"
+     },
+     "benefitBadges": [],
+     "chargesInfo": "Includes taxes and charges",
+     "taxExceptions": []
+    },
+    "countryCode": "id",
+    "propertyClass": 3,
+    "rankingPosition": 2,
+    "name": "The Bali Shanti",
+    "reviewCount": 367,
+    "mainPhotoId": 91259561,
+    "accuratePropertyClass": 3,
+    "optOutFromGalleryChanges": 1,
+    "checkoutDate": "2026-12-13",
+    "position": 2,
+    "blockIds": [
+     "127101501_173874935_2_1_0"
+    ],
+    "isFirstPage": true,
+    "qualityClass": 0,
+    "ufi": -2701757
+   }
+  },
+  {
+   "hotel_id": 8474517,
+   "accessibilityLabel": "Mira Family Cottages.\n3 out of 5 for property rating.\n9.0 Superb 495 reviews.\n\u200eIn city centre\u202c.\nMobile-only price.\n Private room : 1\u00a0bed.\nPrice for 3 nights, 2 adults.\nOriginal price 1860000 IDR. Current price 1674000 IDR..\nIncludes taxes and charges.\nFree cancellation.\nNo prepayment needed.\nWe have 6 left at this price.",
+   "property": {
+    "reviewScore": 9,
+    "recommendedUnitsConfigurationLabel": "<b>Private room</b>: 1\u00a0bed",
+    "photoUrls": [
+     "https://cf.bstatic.com/xdata/images/hotel/square500/355749099.jpg?k=621e1c066a2d17f8d77597845cd79231aa8d51f3baa75578a38973345a60abab&o=",
+     "https://cf.bstatic.com/xdata/images/hotel/square1024/355749099.jpg?k=621e1c066a2d17f8d77597845cd79231aa8d51f3baa75578a38973345a60abab&o=",
+     "https://cf.bstatic.com/xdata/images/hotel/square2000/355749099.jpg?k=621e1c066a2d17f8d77597845cd79231aa8d51f3baa75578a38973345a60abab&o="
+    ],
+    "reviewScoreWord": "Superb",
+    "longitude": 115.25786330423,
+    "currency": "IDR",
+    "latitude": -8.515779054974,
+    "checkout": {
+     "fromTime": "08:00",
+     "untilTime": "11:00"
+    },
+    "checkin": {
+     "untilTime": "18:00",
+     "fromTime": "15:00"
+    },
+    "checkinDate": "2026-12-10",
+    "wishlistName": "Ubud",
+    "id": 8474517,
+    "position": 3,
+    "isFirstPage": true,
+    "blockIds": [
+     "847451701_354037252_2_1_0"
+    ],
+    "optOutFromGalleryChanges": 0,
+    "checkoutDate": "2026-12-13",
+    "ufi": -2701757,
+    "qualityClass": 3,
+    "reviewCount": 495,
+    "name": "Mira Family Cottages",
+    "mainPhotoId": 355749099,
+    "priceBreakdown": {
+     "strikethroughPrice": {
+      "value": 1860000,
+      "amountRounded": "Rp\u00a01,860,000",
+      "currency": "IDR"
+     },
+     "chargesInfo": "Includes taxes and charges",
+     "benefitBadges": [
+      {
+       "variant": "constructive",
+       "text": "Mobile-only price",
+       "explanation": "Mobile-only price",
+       "identifier": "Mobile Rate"
+      }
+     ],
+     "grossPrice": {
+      "amountRounded": "Rp\u00a01,674,000",
+      "value": 1674000,
+      "currency": "IDR"
+     },
+     "taxExceptions": []
+    },
+    "propertyClass": 0,
+    "countryCode": "id",
+    "rankingPosition": 3,
+    "accuratePropertyClass": 0
+   }
+  },
+  {
+   "hotel_id": 9242732,
+   "accessibilityLabel": "Divara Ubud.\n4 out of 5 for property rating.\n9.4 Superb 725 reviews.\n\u200eIn city centre\u202c.\nBreakfast included.\n Private room : 1\u00a0bed.\nPrice for 3 nights, 2 adults.\n1641000 IDR.\nIncludes taxes and charges.\nFree cancellation.\nWe have 4 left at this price.",
+   "property": {
+    "accuratePropertyClass": 0,
+    "reviewCount": 725,
+    "name": "Divara Ubud",
+    "mainPhotoId": 407254865,
+    "countryCode": "id",
+    "propertyClass": 0,
+    "priceBreakdown": {
+     "chargesInfo": "Includes taxes and charges",
+     "benefitBadges": [],
+     "grossPrice": {
+      "value": 1641000,
+      "amountRounded": "Rp\u00a01,641,000",
+      "currency": "IDR"
+     },
+     "taxExceptions": []
+    },
+    "rankingPosition": 4,
+    "ufi": -2701757,
+    "qualityClass": 4,
+    "position": 4,
+    "isFirstPage": true,
+    "blockIds": [
+     "924273201_364915051_0_1_0_410845"
+    ],
+    "checkoutDate": "2026-12-13",
+    "optOutFromGalleryChanges": 0,
+    "checkinDate": "2026-12-10",
+    "checkin": {
+     "fromTime": "14:00",
+     "untilTime": "00:00"
+    },
+    "id": 9242732,
+    "wishlistName": "Ubud",
+    "checkout": {
+     "untilTime": "12:00",
+     "fromTime": "11:00"
+    },
+    "currency": "IDR",
+    "longitude": 115.266968167142,
+    "reviewScoreWord": "Superb",
+    "latitude": -8.502039696148,
+    "reviewScore": 9.4,
+    "photoUrls": [
+     "https://cf.bstatic.com/xdata/images/hotel/square500/407254865.jpg?k=2f8803b3fe4d61d5d32c4b921453a7106a4feaddbb0e12a68891d5238cc047b1&o=",
+     "https://cf.bstatic.com/xdata/images/hotel/square1024/407254865.jpg?k=2f8803b3fe4d61d5d32c4b921453a7106a4feaddbb0e12a68891d5238cc047b1&o=",
+     "https://cf.bstatic.com/xdata/images/hotel/square2000/407254865.jpg?k=2f8803b3fe4d61d5d32c4b921453a7106a4feaddbb0e12a68891d5238cc047b1&o="
+    ],
+    "recommendedUnitsConfigurationLabel": "<b>Private room</b>: 1\u00a0bed"
+   }
+  },
+  {
+   "hotel_id": 266772,
+   "accessibilityLabel": "Puri Garden Hotel & Hostel.\n3 out of 5 stars.\n9.1 Superb 1206 reviews.\n\u200ePengosekan\u202c \u2022 \u200e1.4 km from centre\u202c.\nBreakfast included.\n Hotel room : 1\u00a0bed.\nPrice for 3 nights, 2 adults.\n5100000 IDR.\nIncludes taxes and charges.\nFree cancellation.\nNo prepayment needed.\nWe have 7 left at this price.",
+   "property": {
+    "currency": "IDR",
+    "longitude": 115.262873768806,
+    "reviewScoreWord": "Superb",
+    "latitude": -8.52093389667837,
+    "reviewScore": 9.1,
+    "photoUrls": [
+     "https://cf.bstatic.com/xdata/images/hotel/square500/496759594.jpg?k=2d9169b205e7d56c4e7de7848282b13a66b5363c14166133270df053b82d0cf1&o=",
+     "https://cf.bstatic.com/xdata/images/hotel/square1024/496759594.jpg?k=2d9169b205e7d56c4e7de7848282b13a66b5363c14166133270df053b82d0cf1&o=",
+     "https://cf.bstatic.com/xdata/images/hotel/square2000/496759594.jpg?k=2d9169b205e7d56c4e7de7848282b13a66b5363c14166133270df053b82d0cf1&o="
+    ],
+    "recommendedUnitsConfigurationLabel": "<b>Hotel room</b>: 1\u00a0bed",
+    "id": 266772,
+    "wishlistName": "Ubud",
+    "checkinDate": "2026-12-10",
+    "checkin": {
+     "untilTime": "00:00",
+     "fromTime": "14:00"
+    },
+    "checkout": {
+     "fromTime": "05:00",
+     "untilTime": "11:00"
+    },
+    "ufi": -2701757,
+    "qualityClass": 0,
+    "isFirstPage": true,
+    "blockIds": [
+     "26677218_234612503_2_1_0_246467"
+    ],
+    "position": 5,
+    "checkoutDate": "2026-12-13",
+    "optOutFromGalleryChanges": 0,
+    "accuratePropertyClass": 3,
+    "mainPhotoId": 496759594,
+    "name": "Puri Garden Hotel & Hostel",
+    "reviewCount": 1206,
+    "rankingPosition": 5,
+    "propertyClass": 3,
+    "countryCode": "id",
+    "priceBreakdown": {
+     "grossPrice": {
+      "currency": "IDR",
+      "amountRounded": "Rp\u00a05,100,000",
+      "value": 5100000
+     },
+     "benefitBadges": [],
+     "chargesInfo": "Includes taxes and charges",
+     "taxExceptions": []
+    }
+   }
+  }
+ ],
+ "meta": [
+  {
+   "title": "3921 properties"
+  }
+ ]
+}

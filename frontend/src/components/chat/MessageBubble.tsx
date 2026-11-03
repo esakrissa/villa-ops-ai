@@ -7,6 +7,7 @@ import { CheckIcon, CopyIcon } from "@/components/ui/icons";
 import { LogoMark } from "@/components/ui/Logo";
 import { ToolSteps } from "./ToolCallCard";
 import { ConfirmationCard } from "./ConfirmationCard";
+import { ListingResults } from "./ListingCards";
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -125,6 +126,8 @@ export function MessageBubble({ message, showAvatar = true, onResumeConversation
         {hasToolCalls && (
           <ToolSteps toolCalls={message.toolCalls!} toolResults={message.toolResults} isStreaming={message.isStreaming} />
         )}
+
+        <ListingResults toolResults={message.toolResults} />
 
         {hasConfirmation && (
           <div className="mb-3">

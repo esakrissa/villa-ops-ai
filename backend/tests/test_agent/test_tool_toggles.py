@@ -6,7 +6,7 @@ import pytest
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.tools import StructuredTool
 
-from app.agent.graph import create_agent, list_agent_tools
+from app.agent.graph import create_agent, get_mcp_sources, list_agent_tools
 from app.agent.nodes import create_agent_node
 
 
@@ -76,6 +76,23 @@ class TestListAgentTools:
             tools = await list_agent_tools()
 
         assert tools == [{"name": "booking_search", "description": "booking_search tool", "source": "villaops"}]
+
+
+class TestMcpSources:
+    def test_market_sources_are_added_only_when_configured(self):
+        with patch("app.agent.graph.settings") as s:
+            s.mcp_server_url = "http://mcp:8001/mcp"
+            s.booking_mcp_url = "http://booking-mcp:8002/mcp"
+            s.airbnb_mcp_url = ""
+            s.tripadvisor_mcp_url = "http://tripadvisor-mcp:8004/mcp"
+            s.exa_api_key = ""
+            sources = get_mcp_sources()
+
+        assert sources == [
+            ("villaops", "http://mcp:8001/mcp"),
+            ("booking", "http://booking-mcp:8002/mcp"),
+            ("tripadvisor", "http://tripadvisor-mcp:8004/mcp"),
+        ]
 
 
 @pytest.mark.asyncio

@@ -24,6 +24,13 @@ const tools = [
   "property_manage",
   "property_delete",
   "send_notification",
+  "booking_search_hotels",
+  "booking_hotel_details",
+  "airbnb_search",
+  "airbnb_listing_details",
+  "tripadvisor_search_nearby_locations",
+  "tripadvisor_search_locations",
+  "tripadvisor_get_location_details",
   "web_search_exa",
 ];
 
@@ -239,7 +246,7 @@ const testimonials = [
 ];
 
 const stats = [
-  { value: "15", label: "Tools the agent can use" },
+  { value: "22", label: "Tools the agent can use" },
   { value: "<3s", label: "Typical answer time" },
   { value: "24/7", label: "Always on, even in Nyepi" },
   { value: "0", label: "Unapproved destructive actions" },
@@ -345,7 +352,7 @@ export default function Home() {
           <div>
             <p className="eyebrow text-cream/50">The toolbelt</p>
             <h2 className="display mt-4 text-5xl">
-              Fifteen tools.
+              Twenty-two tools.
               <br />
               <em className="text-lime">One</em> conversation.
             </h2>
