@@ -116,7 +116,7 @@ export function MessageBubble({ message, showAvatar = true, onResumeConversation
     message.isStreaming && hasToolCalls && !hasContent && message.toolCalls!.every((_, i) => message.toolResults?.[i]?.result);
 
   return (
-    <div className="group/msg flex gap-3.5">
+    <div className={`group/msg flex gap-3.5 ${showAvatar ? "" : "-mt-6"}`}>
       <span className="flex h-7 w-7 shrink-0 items-center justify-center text-ink">
         {showAvatar && <LogoMark className="h-5 w-5" />}
       </span>
