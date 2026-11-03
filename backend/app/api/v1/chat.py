@@ -7,6 +7,7 @@ GET  /api/v1/chat/conversations/{id}         — Get conversation with full hist
 DELETE /api/v1/chat/conversations/{id}       — Delete a conversation
 """
 
+import asyncio
 import json
 import logging
 import time
@@ -17,6 +18,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage, ToolMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.types import Command
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sse_starlette.sse import EventSourceResponse
 from starlette.requests import Request
@@ -32,9 +34,11 @@ from app.agent.memory import (
     load_conversation_messages,
     save_messages,
 )
+from app.agent.titles import TITLE_TIMEOUT_SECONDS, generate_llm_title
 from app.api.deps import check_ai_query_limit, get_current_active_user, get_db
 from app.config import settings
 from app.database import async_session_factory
+from app.models.conversation import Conversation
 from app.models.llm_usage import LLMUsage
 from app.models.user import User
 from app.schemas.chat import (
@@ -162,15 +166,19 @@ async def _stream_agent(
                                         "name": tc.get("name", ""),
                                         "args": tc.get("args", {}),
                                     })
-                            elif isinstance(msg, AIMessage) and msg.content and not msg.tool_calls:
-                                # Fallback for models that don't stream tokens
-                                # via "messages" mode — skip if already streamed
-                                if not streamed_text:
-                                    content = msg.content if isinstance(msg.content, str) else str(msg.content)
-                                    yield json.dumps({
-                                        "type": "token",
-                                        "content": content,
-                                    })
+                            elif (
+                                isinstance(msg, AIMessage)
+                                and msg.content
+                                and not msg.tool_calls
+                                # Fallback for models that don't stream tokens via
+                                # "messages" mode — skip if already streamed
+                                and not streamed_text
+                            ):
+                                content = msg.content if isinstance(msg.content, str) else str(msg.content)
+                                yield json.dumps({
+                                    "type": "token",
+                                    "content": content,
+                                })
 
                             if isinstance(msg, AIMessage):
                                 streamed_text = False
@@ -243,6 +251,9 @@ async def chat(
         conversation_id = conv.id
         await db.commit()
 
+    # New conversations get an LLM-written title, generated alongside the agent run
+    is_new_conversation = chat_request.conversation_id is None
+
     user_id = user.id
     message_text = chat_request.message
     model_name = settings.default_llm_model
@@ -264,13 +275,51 @@ async def chat(
             agent_input = {"messages": history, "user_id": str(user_id)}
             new_messages: list = [user_msg]
 
-            async for event in _stream_agent(
-                agent, agent_input, config, request,
-                conversation_id, user_id, model_name, new_messages,
-            ):
-                yield event
+            title_task = asyncio.create_task(generate_llm_title(message_text)) if is_new_conversation else None
+
+            try:
+                async for event in _stream_agent(
+                    agent, agent_input, config, request,
+                    conversation_id, user_id, model_name, new_messages,
+                ):
+                    # Emit the generated title just before the stream ends
+                    if title_task is not None and json.loads(event).get("type") in ("done", "interrupted"):
+                        title_event = await _apply_generated_title(title_task, conversation_id)
+                        title_task = None
+                        if title_event:
+                            yield title_event
+                    yield event
+            finally:
+                if title_task is not None and not title_task.done():
+                    title_task.cancel()
 
     return EventSourceResponse(event_generator())
+
+
+async def _apply_generated_title(title_task: asyncio.Task, conversation_id: uuid.UUID) -> str | None:
+    """Wait for the title task, save the title, and return a ``title`` SSE event.
+
+    Returns None (keeping the truncated fallback title) if generation failed.
+    """
+    try:
+        title = await asyncio.wait_for(title_task, timeout=TITLE_TIMEOUT_SECONDS)
+    except Exception:
+        logger.warning("Title generation did not finish for conversation %s", conversation_id)
+        return None
+    if not title:
+        return None
+
+    try:
+        async with async_session_factory() as session:
+            await session.execute(
+                update(Conversation).where(Conversation.id == conversation_id).values(title=title)
+            )
+            await session.commit()
+    except Exception:
+        logger.exception("Failed to save generated title for conversation %s", conversation_id)
+        return None
+
+    return json.dumps({"type": "title", "conversation_id": str(conversation_id), "title": title})
 
 
 @router.post("/{conversation_id}/resume")

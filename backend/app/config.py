@@ -60,6 +60,8 @@ class Settings(BaseSettings):
     # LLM (LiteLLM)
     default_llm_model: str = "gemini/gemini-3.5-flash"
     gemini_api_key: str = ""
+    # Small fast model for conversation titles (falls back to default_llm_model)
+    title_llm_model: str = "gemini/gemini-3.1-flash-lite"
     # Free-tier Gemini models tried in order when the default model is overloaded (503)
     gemini_fallback_models: list[str] = [
         "gemini/gemini-3-flash-preview",

@@ -80,7 +80,7 @@ export function ChatInput({
               title="Stop"
               className="flex h-9 w-9 items-center justify-center rounded-full bg-ink text-cream transition-transform active:scale-95"
             >
-              <StopIcon className="h-3 w-3" />
+              <StopIcon className="h-[18px] w-[18px]" />
             </button>
           ) : (
             <button

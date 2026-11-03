@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useRef, useSyncExternalStore } from "
 import { ChatWindow } from "@/components/chat/ChatWindow";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ConversationSidebar } from "@/components/chat/ConversationSidebar";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { ChatsIcon, CloseIcon, PenIcon } from "@/components/ui/icons";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useChat } from "@/lib/hooks/useChat";
@@ -38,6 +39,7 @@ export default function ChatPage() {
     isLoading,
     error,
     conversationId,
+    generatedTitle,
     sendMessage,
     resumeConversation,
     clearMessages,
@@ -59,6 +61,7 @@ export default function ChatPage() {
   const historyOpen = isDesktop ? desktopHistoryOpen : mobileHistoryOpen;
   const setHistoryOpen = isDesktop ? setDesktopHistoryOpen : setMobileHistoryOpen;
   const [dismissedError, setDismissedError] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const prevConvIdRef = useRef<string | null>(null);
 
   // Refresh history when a new conversation is created
@@ -76,21 +79,37 @@ export default function ChatPage() {
     [conversationId, loadConversation],
   );
 
-  const handleDelete = useCallback(
-    (id: string) => {
-      deleteConversation(id);
-      if (id === conversationId) clearMessages();
-    },
-    [deleteConversation, conversationId, clearMessages],
-  );
+  // Refresh history when the LLM-generated title arrives
+  useEffect(() => {
+    if (generatedTitle) fetchConversations();
+  }, [generatedTitle, fetchConversations]);
+
+  const confirmDelete = useCallback(() => {
+    const id = pendingDeleteId;
+    setPendingDeleteId(null);
+    if (!id) return;
+    deleteConversation(id);
+    if (id === conversationId) clearMessages();
+  }, [pendingDeleteId, deleteConversation, conversationId, clearMessages]);
 
   const isEmpty = messages.length === 0 && !isLoading;
-  const title = conversations.find((c) => c.id === conversationId)?.title;
+  const title = generatedTitle ?? conversations.find((c) => c.id === conversationId)?.title;
+  const pendingDeleteTitle = conversations.find((c) => c.id === pendingDeleteId)?.title;
   const firstName = user?.name?.split(" ")[0];
   const hello = useGreeting();
 
   return (
     <div className="flex h-full">
+      <ConfirmModal
+        open={!!pendingDeleteId}
+        title="Delete conversation?"
+        description={`"${pendingDeleteTitle || "Untitled"}" and all its messages will be permanently deleted. This can't be undone.`}
+        confirmLabel="Delete"
+        cancelLabel="Keep it"
+        destructive
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDeleteId(null)}
+      />
       <ConversationSidebar
         isOpen={historyOpen}
         onClose={() => setHistoryOpen(false)}
@@ -100,7 +119,7 @@ export default function ChatPage() {
         conversations={conversations}
         loading={convsLoading}
         error={convsError}
-        onDelete={handleDelete}
+        onDelete={setPendingDeleteId}
         onRefresh={fetchConversations}
       />
 

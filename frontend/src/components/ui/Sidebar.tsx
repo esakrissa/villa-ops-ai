@@ -53,15 +53,17 @@ function NavLinks({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: 
 
 function UserBlock({ collapsed }: { collapsed: boolean }) {
   const { user, logout } = useAuth();
-  const initial = user?.name?.charAt(0)?.toUpperCase() || "?";
+  const initial = user?.name?.charAt(0)?.toUpperCase();
   return (
     <div className={`flex items-center gap-2.5 rounded-xl ${collapsed ? "flex-col" : "p-1.5"}`}>
       {user?.avatar_url ? (
         <img src={user.avatar_url} alt="" className="h-8 w-8 shrink-0 rounded-full" />
-      ) : (
+      ) : initial ? (
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ink font-serif text-[15px] text-cream">
           {initial}
         </span>
+      ) : (
+        <span className="h-8 w-8 shrink-0 animate-pulse rounded-full bg-gray-200" aria-label="Loading account" />
       )}
       {!collapsed && (
         <div className="min-w-0 flex-1">

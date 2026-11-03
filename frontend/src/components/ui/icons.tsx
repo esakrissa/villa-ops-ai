@@ -54,7 +54,7 @@ export const SearchIcon = (p: IconProps) => (
 export const ArrowUpIcon = (p: IconProps) => <Icon {...p} strokeWidth={2.2} d="M12 19V5m0 0-6 6m6-6 6 6" />;
 export const StopIcon = (p: IconProps) => (
   <svg className={p.className ?? "h-3 w-3"} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-    <rect x="5" y="5" width="14" height="14" rx="3" />
+    <rect x="6" y="6" width="12" height="12" rx="2.5" />
   </svg>
 );
 export const ChevronIcon = (p: IconProps) => <Icon {...p} strokeWidth={2} d="m19.5 8.25-7.5 7.5-7.5-7.5" />;

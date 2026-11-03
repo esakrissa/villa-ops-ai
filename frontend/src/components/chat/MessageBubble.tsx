@@ -10,6 +10,8 @@ import { ConfirmationCard } from "./ConfirmationCard";
 
 interface MessageBubbleProps {
   message: ChatMessage;
+  /** False for follow-up assistant messages in the same turn */
+  showAvatar?: boolean;
   onResumeConversation?: (action: "approve" | "cancel") => Promise<void>;
 }
 
@@ -92,7 +94,7 @@ const markdownComponents = {
   td: ({ children }: { children?: React.ReactNode }) => <td className="border-t border-gray-100 px-3 py-2">{children}</td>,
 };
 
-export function MessageBubble({ message, onResumeConversation }: MessageBubbleProps) {
+export function MessageBubble({ message, showAvatar = true, onResumeConversation }: MessageBubbleProps) {
   if (message.role === "user") {
     return (
       <div className="flex justify-end">
@@ -120,8 +122,8 @@ export function MessageBubble({ message, onResumeConversation }: MessageBubblePr
 
   return (
     <div className="group/msg flex gap-3.5">
-      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-ink text-cream">
-        <LogoMark className="h-4 w-4" />
+      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-start justify-center pt-0.5 text-ink">
+        {showAvatar && <LogoMark className="h-5 w-5" />}
       </span>
 
       <div className="min-w-0 flex-1 pt-0.5">

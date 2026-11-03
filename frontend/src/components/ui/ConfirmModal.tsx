@@ -8,6 +8,8 @@ interface ConfirmModalProps {
   description: string;
   confirmLabel?: string;
   cancelLabel?: string;
+  /** Red confirm button for irreversible actions like deletes */
+  destructive?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -18,6 +20,7 @@ export function ConfirmModal({
   description,
   confirmLabel = "Confirm",
   cancelLabel = "Cancel",
+  destructive = false,
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
@@ -44,26 +47,26 @@ export function ConfirmModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/40 transition-opacity"
+        className="fixed inset-0 bg-coal/40 transition-opacity"
         onClick={onCancel}
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
-        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-        <p className="mt-2 text-sm text-gray-600">{description}</p>
+      <div className="relative mx-4 w-full max-w-md rounded-[28px] bg-cream p-7 shadow-[0_30px_60px_-20px_rgb(31_29_27/0.45)]">
+        <h3 className="display text-[32px] text-ink">{title}</h3>
+        <p className="mt-3 text-[14px] leading-relaxed text-gray-600">{description}</p>
 
-        <div className="mt-6 flex justify-end gap-3">
+        <div className="mt-7 flex justify-end gap-2">
           <button
             onClick={onCancel}
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+            className="btn-sand !py-2"
           >
             {cancelLabel}
           </button>
           <button
             ref={confirmRef}
             onClick={onConfirm}
-            className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-500"
+            className={destructive ? "inline-flex items-center rounded-full bg-[#b4532a] px-5 py-2 text-[14px] font-medium text-white transition-colors hover:bg-[#9a4523]" : "btn-ink !py-2"}
           >
             {confirmLabel}
           </button>

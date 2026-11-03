@@ -45,6 +45,8 @@ interface UseChatReturn {
   isLoading: boolean;
   error: string | null;
   conversationId: string | null;
+  /** LLM-generated title for a new conversation, streamed as a `title` event */
+  generatedTitle: string | null;
   sendMessage: (message: string) => Promise<void>;
   resumeConversation: (action: "approve" | "cancel") => Promise<void>;
   clearMessages: () => void;
@@ -63,6 +65,7 @@ export function useChat(): UseChatReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [generatedTitle, setGeneratedTitle] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const sendMessage = useCallback(
@@ -253,6 +256,10 @@ export function useChat(): UseChatReturn {
                       }
                       return updated;
                     });
+                    break;
+
+                  case "title":
+                    setGeneratedTitle(event.title);
                     break;
 
                   case "done":
@@ -627,6 +634,7 @@ export function useChat(): UseChatReturn {
 
       setMessages(loaded);
       setConversationId(id);
+      setGeneratedTitle(null);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to load conversation",
@@ -648,6 +656,7 @@ export function useChat(): UseChatReturn {
     abortRef.current?.abort();
     setMessages([]);
     setConversationId(null);
+    setGeneratedTitle(null);
     setError(null);
   }, []);
 
@@ -656,6 +665,7 @@ export function useChat(): UseChatReturn {
     isLoading,
     error,
     conversationId,
+    generatedTitle,
     sendMessage,
     resumeConversation,
     clearMessages,

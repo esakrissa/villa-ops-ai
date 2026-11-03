@@ -18,8 +18,13 @@ export function ChatWindow({ messages, onResumeConversation }: ChatWindowProps) 
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 pb-10 pt-8 sm:px-6">
-      {messages.map((message) => (
-        <MessageBubble key={message.id} message={message} onResumeConversation={onResumeConversation} />
+      {messages.map((message, i) => (
+        <MessageBubble
+          key={message.id}
+          message={message}
+          showAvatar={messages[i - 1]?.role !== "assistant"}
+          onResumeConversation={onResumeConversation}
+        />
       ))}
       <div ref={bottomRef} />
     </div>
