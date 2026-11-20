@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import { ArrowUpIcon, SparkIcon, StopIcon } from "@/components/ui/icons";
+import { ArrowUpIcon, StopIcon } from "@/components/ui/icons";
+import { ModelMenu } from "./ModelMenu";
 import { ToolsMenu } from "./ToolsMenu";
 
 interface ChatInputProps {
@@ -65,10 +66,7 @@ export function ChatInput({
         />
         <div className="flex items-center justify-between gap-2 px-1">
           <div className="flex items-center gap-1.5">
-            <span className="flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 text-[12px] text-gray-600">
-              <SparkIcon className="h-3.5 w-3.5" />
-              Gemini 3.5 Flash
-            </span>
+            <ModelMenu />
             <ToolsMenu />
           </div>
           {isLoading && onStop ? (

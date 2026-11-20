@@ -24,7 +24,7 @@ from sse_starlette.sse import EventSourceResponse
 from starlette.requests import Request
 
 from app.agent import create_agent
-from app.agent.graph import list_agent_tools
+from app.agent.graph import available_models, list_agent_tools, resolve_model
 from app.agent.memory import (
     create_conversation,
     delete_conversation,
@@ -43,6 +43,7 @@ from app.models.conversation import Conversation
 from app.models.llm_usage import LLMUsage
 from app.models.user import User
 from app.schemas.chat import (
+    AgentModelResponse,
     AgentToolResponse,
     ChatRequest,
     ConversationDetailResponse,
@@ -259,7 +260,7 @@ async def chat(
     user_id = user.id
     message_text = chat_request.message
     disabled_tools = set(chat_request.disabled_tools)
-    model_name = settings.default_llm_model
+    model_name = resolve_model(chat_request.model)
 
     async def event_generator():
         db_uri = settings.psycopg_database_url
@@ -272,7 +273,7 @@ async def chat(
             user_msg = HumanMessage(content=message_text)
             history.append(user_msg)
 
-            agent = await create_agent(checkpointer=checkpointer, disabled_tools=disabled_tools)
+            agent = await create_agent(checkpointer=checkpointer, disabled_tools=disabled_tools, model=model_name)
 
             config = {"configurable": {"thread_id": str(conversation_id)}}
             agent_input = {"messages": history, "user_id": str(user_id)}
@@ -346,7 +347,7 @@ async def resume_conversation(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Conversation not found",
         )
-
+    model_name = resolve_model(body.model)
     model_name = settings.default_llm_model
     logger.info("HITL resume action=%s [conversation=%s]", body.action, conversation_id)
 
@@ -363,7 +364,9 @@ async def resume_conversation(
         try:
             async with AsyncPostgresSaver.from_conn_string(db_uri) as checkpointer:
                 await checkpointer.setup()
-                agent = await create_agent(checkpointer=checkpointer, disabled_tools=set(body.disabled_tools))
+                agent = await create_agent(
+                    checkpointer=checkpointer, disabled_tools=set(body.disabled_tools), model=model_name
+                )
                 config = {"configurable": {"thread_id": str(conversation_id)}}
 
                 # Resume the graph with the user's decision
@@ -384,6 +387,14 @@ async def resume_conversation(
             _active_resumes.discard(conversation_id)
 
     return EventSourceResponse(event_generator())
+
+
+@router.get("/models", response_model=list[AgentModelResponse])
+async def get_agent_models(
+    user: User = Depends(get_current_active_user),
+) -> list[AgentModelResponse]:
+    """List the chat models the user can pick in the composer."""
+    return [AgentModelResponse(**m) for m in available_models()]
 
 
 @router.get("/tools", response_model=list[AgentToolResponse])

@@ -67,6 +67,8 @@ class Settings(BaseSettings):
         "gemini/gemini-3-flash-preview",
         "gemini/gemini-3.1-flash-lite",
     ]
+    # Xiaomi MiMo (OpenAI-compatible; LiteLLM provider "xiaomi_mimo")
+    xiaomi_mimo_api_key: str = ""
     anthropic_api_key: str = ""
     openai_api_key: str = ""
     openrouter_api_key: str = ""
