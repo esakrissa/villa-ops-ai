@@ -1,20 +1,20 @@
 # VillaOps AI
 
-An AI-powered operations assistant for villa and hotel property managers in Bali. Chat with an AI agent that can query bookings, manage properties, contact guests, and provide analytics — all through natural language, powered by LangGraph and MCP.
+An AI operations agent for villa and hotel property managers in Bali. Managers chat with an agent that looks up bookings, manages properties and guests, benchmarks prices against Booking.com, answers policy questions from the company's own documents with citations, and asks for approval before changing anything. Built with LangGraph, MCP, Pinecone, FastAPI, Next.js and Stripe.
 
 ![CI](https://github.com/esakrissa/villa-ops-ai/actions/workflows/ci.yml/badge.svg)
 ![Python](https://img.shields.io/badge/Python-3.13+-blue)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.128+-green)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.162-green)
 ![LangGraph](https://img.shields.io/badge/LangGraph-Agent-purple)
-![MCP](https://img.shields.io/badge/MCP-Streamable_HTTP-orange)
+![MCP](https://img.shields.io/badge/MCP_2-Streamable_HTTP-orange)
+![Pinecone](https://img.shields.io/badge/RAG-Pinecone-1b17f5)
+![LangSmith](https://img.shields.io/badge/Tracing-LangSmith-2f2c25)
 ![Next.js](https://img.shields.io/badge/Next.js-16-black)
 ![Stripe](https://img.shields.io/badge/Stripe-Billing-blueviolet)
-![AWS](https://img.shields.io/badge/AWS-ECS%20Fargate-orange)
-![Tests](https://img.shields.io/badge/Tests-262%20passed-brightgreen)
-![Coverage](https://img.shields.io/badge/Coverage-82%25-brightgreen)
+![AWS](https://img.shields.io/badge/AWS-EC2_+_Caddy-orange)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
 
-**Live Demo:** [villaops.esakrissa.com](https://villaops.esakrissa.com)
+**Live Demo:** [villaops.esakrissa.com](https://villaops.esakrissa.com) (the demo server runs on demand — it may be powered off)
 &nbsp;|&nbsp;
 **API Docs:** [villaops.esakrissa.com/docs](https://villaops.esakrissa.com/docs)
 
@@ -22,32 +22,80 @@ An AI-powered operations assistant for villa and hotel property managers in Bali
 
 ## Key Features
 
-- **AI Chat with Tool Calling** — LangGraph agent connected to 8 MCP tools over Streamable HTTP, with real-time SSE streaming responses
-- **Full SaaS Billing** — Stripe Checkout, Customer Portal, webhook-driven subscription lifecycle (Free / Pro / Business tiers)
-- **Plan-Gated Usage Limits** — Middleware enforces property limits, AI query quotas, and feature access per plan
-- **Live Market Data with Photo Cards** — Three extra MCP servers in `mcp-servers/` (Booking.com via RapidAPI, Airbnb, Tripadvisor Terra) let the agent benchmark your rates against the market and recommend nearby places; results render as photo cards in the chat
-- **Multi-Provider OAuth** — Google + GitHub OAuth alongside email/password registration with JWT tokens
-- **Real-Time Analytics Dashboard** — Occupancy rates, revenue trends, and booking charts built with Recharts
-- **Multi-Provider LLM Gateway** — LiteLLM routes to Gemini (default), with Anthropic and OpenAI as fallbacks, plus response caching
-- **262 Tests, 82% Coverage** — Comprehensive test suite across auth, billing, agent, MCP tools, and API endpoints
-- **CI/CD with Targeted Deployment** — GitHub Actions pipeline that only rebuilds and deploys services with code changes
-- **Deployed on AWS ECS Fargate** — Production infrastructure with RDS PostgreSQL, ElastiCache Redis, and Cloudflare SSL
+- **Agent that acts, not just chats** — a LangGraph agent with 26 MCP tools across 5 servers (VillaOps, Booking.com, Airbnb, Tripadvisor, Exa web search), streaming over SSE with live tool steps you can expand to see arguments and results
+- **Knowledge base (RAG) with a live pipeline** — upload PDF/DOCX/Markdown and watch it extract → chunk (heading-aware, with overlap) → embed and index in Pinecone → verify, chunk by chunk. The agent searches it with `kb_search`, reranks with `bge-reranker-v2-m3`, and cites `(Document, Section)`. Delete a document and it's gone from answers immediately
+- **Human-in-the-loop** — destructive tools (delete guest/property) pause the graph with `interrupt()` and show an approval card; nothing changes until you confirm
+- **Fast, resilient model routing** — all models via OpenRouter (default GPT-6 Luna; Claude Haiku 5.5, Gemini Flash-Lite and five free models in the picker), an 8-second first-token deadline with automatic failover, and latency-sorted provider routing. Typical tool-using reply: ~3–6 s
+- **Latency engineering backed by traces** — cached and parallel MCP tool discovery, de-duplicated conversation state, trimmed history, provider prompt caching; profiled with LangSmith (see the traces below)
+- **Live market data with photo cards** — Booking.com, Airbnb and Tripadvisor MCP servers in `mcp-servers/` power rate benchmarking and recommendations rendered as cards in the chat
+- **Full SaaS billing** — Stripe Checkout, Customer Portal and a webhook-driven subscription lifecycle with plan-gated usage (properties, AI queries) for Free / Pro / Business
+- **Per-user tool and model controls** — turn individual tools off or pick a model from the composer
+- **Auth** — email/password plus Google and GitHub OAuth with JWT
+- **On-demand cloud demo** — one EC2 instance + Elastic IP + Caddy (automatic HTTPS) with a start/stop script and a 2-hour auto-stop, so it only costs money while it's on
 
 ---
 
 ## Screenshots
 
-| Landing Page | Login (OAuth + Email) |
+> Captured from the live deployment on 2026-11-24. The previous UI is kept in [`docs/images/archive/2026-02-v1`](docs/images/archive/2026-02-v1).
+
+### Agent
+
+| Agent answers with real data and policy citations | Expandable tool steps (arguments + JSON results) |
+|:---:|:---:|
+| ![Agent combining booking lookup and policy search](docs/images/chat_tool_steps.png) | ![Tool step details](docs/images/chat_tool_result.png) |
+
+| Market research with Booking.com photo cards | Human-in-the-loop approval before deleting |
+|:---:|:---:|
+| ![Market comparison cards](docs/images/chat_market.png) | ![Approval card](docs/images/chat_confirm.png) |
+
+| Model picker (OpenRouter: paid + free) | Per-user tool toggles (26 tools) |
+|:---:|:---:|
+| ![Model picker](docs/images/chat_models.png) | ![Tools menu](docs/images/chat_tools.png) |
+
+### Knowledge base (RAG)
+
+| Live ingestion pipeline with indexed chunks | Test retrieval (reranked, with scores) |
+|:---:|:---:|
+| ![Knowledge pipeline](docs/images/knowledge.png) | ![Knowledge search](docs/images/knowledge_search.png) |
+
+| Pinecone index (integrated embedding) | Same query straight in Pinecone |
+|:---:|:---:|
+| ![Pinecone index](docs/images/pinecone_index.jpg) | ![Pinecone search](docs/images/pinecone_search.jpg) |
+
+### Observability (LangSmith)
+
+| Every chat is a LangGraph trace | Trace tree: agent → model → tools, with timings and tokens |
+|:---:|:---:|
+| ![LangSmith traces](docs/images/langsmith_traces.jpg) | ![LangSmith trace](docs/images/langsmith_trace.jpg) |
+
+### Billing (Stripe)
+
+| Free plan usage | Stripe Checkout (test card) |
+|:---:|:---:|
+| ![Billing free](docs/images/billing.png) | ![Stripe checkout](docs/images/stripe_checkout.png) |
+
+| Payment successful | Pro plan with usage allowance |
+|:---:|:---:|
+| ![Checkout success](docs/images/stripe_success.png) | ![Billing pro](docs/images/billing_pro.png) |
+
+### Dashboard and landing
+
+| Overview | Analytics |
+|:---:|:---:|
+| ![Overview](docs/images/dashboard.png) | ![Analytics](docs/images/analytics.png) |
+
+| Bookings | Properties |
+|:---:|:---:|
+| ![Bookings](docs/images/bookings.png) | ![Properties](docs/images/properties.png) |
+
+| Landing page | Login (email + Google + GitHub) |
 |:---:|:---:|
 | ![Home](docs/images/home.png) | ![Login](docs/images/login.png) |
 
-| AI Chat with Tool Calls | Pricing Page |
+| Agent home | Pricing |
 |:---:|:---:|
-| ![Chat](docs/images/demo_chat.png) | ![Pricing](docs/images/pricing.png) |
-
-| Properties Management | Billing & Usage |
-|:---:|:---:|
-| ![Properties](docs/images/properties.png) | ![Billing](docs/images/billing.png) |
+| ![Agent welcome](docs/images/chat_welcome.png) | ![Pricing](docs/images/pricing.png) |
 
 ---
 
@@ -55,14 +103,14 @@ An AI-powered operations assistant for villa and hotel property managers in Bali
 
 Instead of juggling spreadsheets and dashboards, property managers can simply ask:
 
-- *"Show me all check-ins for tomorrow"*
-- *"Book Villa Sunset for John, Feb 10-15"*
+- *"Sarah Chen wants to cancel her Canggu booking — how much does she get back under our policy?"* (booking lookup + knowledge base, cited)
+- *"Which guests are arriving in the next 7 days?"*
+- *"How does my Ubud villa's rate compare with Booking.com in Ubud?"* (live market data + photo cards)
 - *"What's our occupancy rate this month?"*
-- *"Send check-in instructions to tomorrow's arrivals"*
-- *"Cancel booking #1234"*
-- *"What's the weather forecast for Bali this weekend?"*
+- *"How long do we keep guest passport copies?"* (answered from the privacy policy)
+- *"Delete the guest Yuki Tanaka"* (pauses for approval)
 
-The AI agent understands the intent, picks the right MCP tool, executes it, and streams the results back in real-time through a chat interface.
+The agent picks the right MCP tools, runs independent ones in parallel, streams each step and the answer, and cites company documents when it uses them. Sample documents for the knowledge base are in [`docs/knowledge-samples/`](docs/knowledge-samples/) (Markdown and PDF).
 
 ---
 
@@ -106,53 +154,49 @@ The AI agent understands the intent, picks the right MCP tool, executes it, and 
 │       │                   │ Streamable HTTP        │
 │       │                   ▼                        │
 │  ┌────────────────────────────────────────────┐    │
-│  │  MCP Server (Streamable HTTP on /mcp)      │    │
-│  │  booking_search | booking_create           │    │
-│  │  booking_update | booking_analytics        │    │
-│  │  guest_lookup   | property_manage          │    │
-│  │  send_notification | web_search            │    │
+│  │  MCP Servers (Streamable HTTP, 26 tools)   │    │
+│  │  VillaOps: bookings, guests, properties,   │    │
+│  │    analytics, notifications, kb_search     │    │
+│  │  Booking.com | Airbnb | Tripadvisor | Exa  │    │
 │  └────────────────────────────────────────────┘    │
 │                                                    │
 │  ┌────────────────────────────────────────────┐    │
-│  │  LiteLLM Gateway                           │    │
-│  │  Gemini (default) → Claude → GPT           │    │
-│  │  + caching + cost tracking + fallback      │    │
+│  │  LiteLLM → OpenRouter                      │    │
+│  │  GPT-6 Luna (default) → retry → free model │    │
+│  │  8 s first-token deadline + failover       │    │
+│  └────────────────────────────────────────────┘    │
+│                                                    │
+│  ┌────────────────────────────────────────────┐    │
+│  │  Knowledge base: extract → chunk → index   │    │
+│  │  Pinecone (llama-text-embed-v2 + rerank)   │    │
 │  └────────────────────────────────────────────┘    │
 └────────────────────────────────────────────────────┘
 
-┌──────────────────┐  ┌────────────────┐  ┌─────────────┐
-│  PostgreSQL      │  │     Redis      │  │   Stripe    │
-│  (8 tables)      │  │    (cache)     │  │   Payments  │
-└──────────────────┘  └────────────────┘  └─────────────┘
+┌──────────────────┐  ┌────────────────┐  ┌─────────────┐  ┌───────────┐  ┌───────────┐
+│  PostgreSQL      │  │     Redis      │  │   Stripe    │  │ Pinecone  │  │ LangSmith │
+│  (10 tables)     │  │    (cache)     │  │   Payments  │  │  vectors  │  │  tracing  │
+└──────────────────┘  └────────────────┘  └─────────────┘  └───────────┘  └───────────┘
 ```
 
-### Deployment Architecture
+### Deployment Architecture (current: on-demand demo server)
 
 ```
-                  Cloudflare (SSL + DNS)
+          Cloudflare DNS (villaops.esakrissa.com, DNS only)
                          │
-                         ▼
-              ┌───────────────────────┐
-              │   Nginx (ECS Fargate) │
-              │   Reverse Proxy       │
-              └──────────┬────────────┘
-                         │
-           ┌─────────────┼─────────────┐
-           ▼             ▼             ▼
-    ┌─────────────┐ ┌─────────────┐ ┌──────────────┐
-    │   Backend   │ │   Frontend  │ │  MCP Server  │
-    │  (FastAPI)  │ │  (Next.js)  │ │  (FastMCP)   │
-    │   :8000     │ │   :3000     │ │   :8001      │
-    └──────┬──────┘ └─────────────┘ └──────┬───────┘
-           │                               │
-    ┌──────┴──────┐                 ┌──────┴──────┐
-    │     RDS     │                 │ ElastiCache │
-    │ PostgreSQL  │                 │    Redis    │
-    └─────────────┘                 └─────────────┘
-
-    Service Discovery: AWS Cloud Map (villaops.local)
-    CI/CD: GitHub Actions → ECR → ECS (targeted deploy)
+                         ▼   Elastic IP 13.228.0.170
+     ┌──────────────── EC2 t3.large · ap-southeast-1 ────────────────┐
+     │  Caddy (automatic HTTPS) ── /api, /health, /docs → backend    │
+     │                         └─ everything else   → frontend       │
+     │                                                               │
+     │  backend (FastAPI + LangGraph)   frontend (Next.js prod)      │
+     │  mcp (VillaOps tools)   booking-mcp  airbnb-mcp  tripadvisor  │
+     │  postgres   redis              (docker compose, one box)      │
+     └───────────────────────────────────────────────────────────────┘
+        ./scripts/demo.sh start | stop | status | deploy | destroy
+        Auto-stop after 2 h · pay only while it runs
 ```
+
+The original production setup (ECS Fargate + RDS + ElastiCache behind an Nginx service, see `.aws/`) was retired to save cost; the deploy workflow is now manual-only.
 
 ---
 
@@ -161,19 +205,21 @@ The AI agent understands the intent, picks the right MCP tool, executes it, and 
 | Layer | Technology |
 |---|---|
 | **Backend** | Python 3.13+, FastAPI (async), Pydantic v2 |
-| **Agent** | LangGraph |
+| **Agent** | LangGraph (checkpointed state, `interrupt()` approvals, first-token-deadline failover) |
 | **Tool Protocol** | MCP (Streamable HTTP transport) |
-| **LLM Gateway** | LiteLLM (Gemini default, Anthropic + OpenAI fallback) |
+| **LLM Gateway** | LiteLLM → OpenRouter (GPT-6 Luna default, Claude Haiku 5.5, Gemini Flash-Lite, free Nemotron/Dots/Flint) |
+| **RAG** | Pinecone integrated embedding (`llama-text-embed-v2`) + `bge-reranker-v2-m3`, pypdf / python-docx extraction |
+| **Observability** | LangSmith tracing |
 | **Payments** | Stripe (Checkout + Webhooks + Customer Portal) |
 | **Database** | PostgreSQL 16 + SQLAlchemy (async) + Alembic migrations |
 | **Cache** | Redis 7 |
 | **Auth** | JWT (python-jose) + Google OAuth + GitHub OAuth (authlib) |
 | **Frontend** | Next.js 16, React 19, TypeScript, Tailwind CSS v4 |
 | **Charts** | Recharts |
-| **Testing** | pytest, pytest-asyncio, httpx (262 tests, 82% coverage) |
-| **CI/CD** | GitHub Actions (lint + test + build + targeted deploy) |
-| **Deployment** | AWS ECS Fargate + ECR + RDS + ElastiCache + Cloudflare |
-| **Reverse Proxy** | Nginx (path-based routing via AWS Cloud Map DNS) |
+| **Testing** | pytest, pytest-asyncio, httpx (389 tests) |
+| **CI** | GitHub Actions (lint + test + build) |
+| **Deployment** | AWS EC2 (on demand) + Elastic IP + Docker Compose + Cloudflare DNS |
+| **Reverse Proxy** | Caddy (automatic HTTPS, SSE-friendly streaming) |
 
 ---
 
@@ -378,38 +424,38 @@ pytest tests/test_mcp/         # MCP tool edge cases
 pytest tests/test_services/    # Business logic
 ```
 
-**Current stats:** 262 tests passing, 82% code coverage.
+**Current stats:** 389 tests (backend), plus fixture-based tests for each market-data MCP server.
 
 ---
 
 ## Deployment
 
-The app is deployed on **AWS ECS Fargate** with automated CI/CD via GitHub Actions.
+The live demo runs on **one EC2 instance that is off by default** and is started only when needed (`scripts/demo.sh`).
 
 ### Infrastructure
 
 | Resource | Service |
 |---|---|
-| Compute | AWS ECS Fargate (4 services: backend, MCP, frontend, nginx) |
-| Database | AWS RDS PostgreSQL 16 |
-| Cache | AWS ElastiCache Redis 7 |
-| Container Registry | AWS ECR (3 repositories) |
-| Service Discovery | AWS Cloud Map (`villaops.local`) |
-| SSL / DNS | Cloudflare (proxied A record) |
-| Reverse Proxy | Nginx on ECS Fargate (path-based routing via Cloud Map DNS) |
-| CI/CD | GitHub Actions (2 workflows: `ci.yml` + `deploy.yml`) |
+| Compute | EC2 `t3.large`, Ubuntu 24.04, ap-southeast-1 (Singapore), 30 GB gp3 + 4 GB swap |
+| Network | Elastic IP (stable across stop/start), security group: 80/443 public, 22 from the operator's IP only |
+| HTTPS | Caddy with automatic Let's Encrypt certificates (`Caddyfile`) |
+| Stack | `docker compose -f docker-compose.yml -f docker-compose.prod.yml` (Next.js prod build, no source mounts, no reload) |
+| DNS | Cloudflare A record `villaops` → Elastic IP (DNS only) |
+| External | Pinecone (vectors), OpenRouter (models), Stripe (billing, sandbox), LangSmith (tracing) |
+| Cost | ~$0.11/h while running + ~$0.29/day for IP and disk when stopped |
 
-### CI/CD Pipeline
-
+```bash
+./scripts/demo.sh create     # one-time: key pair, firewall, instance, Elastic IP
+./scripts/demo.sh deploy     # rsync code + .env, build, migrate, seed
+./scripts/demo.sh start      # power on, auto-stop in 2 h, wait for https health
+./scripts/demo.sh stop       # power off (disk + IP kept)
+./scripts/demo.sh status     # state, DNS, health, auto-stop time
+./scripts/demo.sh destroy    # delete everything
 ```
-Push to main → CI (lint + test + build) → Deploy (targeted)
-```
 
-- **Targeted deployment** — only deploys services with actual code changes
-- Backend changes → rebuild backend + MCP images (~8 min)
-- Frontend changes → rebuild frontend image only (~5 min)
-- No service changes → skip deploy (~1 min)
-- **Cloudflare DNS auto-update** — deploy workflow updates the A record if the nginx public IP changes
+### CI
+
+`ci.yml` runs lint, tests and builds on pushes and pull requests to `main`. The previous ECS Fargate deployment (`deploy.yml`, `.aws/`) is kept for reference and can only be run manually.
 
 ---
 
@@ -422,23 +468,25 @@ villa-ops-ai/
 │   │   ├── main.py              # FastAPI entry point
 │   │   ├── config.py            # Settings (pydantic-settings)
 │   │   ├── database.py          # Async SQLAlchemy engine + sessions
-│   │   ├── models/              # 8 SQLAlchemy models
+│   │   ├── models/              # 10 SQLAlchemy models (incl. knowledge documents/chunks)
 │   │   ├── schemas/             # Pydantic request/response schemas
 │   │   ├── api/v1/              # REST + Chat + Auth + Billing + Webhook routers
 │   │   ├── auth/                # JWT + OAuth (Google, GitHub)
 │   │   ├── billing/             # Stripe (checkout, webhooks, plan gating)
-│   │   ├── agent/               # LangGraph agent + MCP client
+│   │   ├── agent/               # LangGraph agent, MCP client (cached), model routing + failover
+│   │   ├── knowledge/           # RAG: extract, chunk, Pinecone client, ingestion pipeline, search
 │   │   ├── mcp/                 # MCP server (Streamable HTTP)
 │   │   │   ├── server.py
-│   │   │   └── tools/           # 8 tool modules
+│   │   │   └── tools/           # 6 tool modules (16 tools incl. kb_search)
 │   │   └── services/            # Business logic layer
-│   ├── tests/                   # 262 tests (82% coverage)
+│   ├── tests/                   # 389 tests
 │   │   ├── conftest.py
 │   │   ├── test_api/
 │   │   ├── test_auth/
 │   │   ├── test_billing/
 │   │   ├── test_agent/
 │   │   ├── test_mcp/
+│   │   ├── test_knowledge/
 │   │   └── test_services/
 │   ├── scripts/
 │   │   └── seed_data.py         # Idempotent demo data seeder
@@ -452,17 +500,18 @@ villa-ops-ai/
 │   │   │   ├── (auth)/          # Login, register, OAuth callbacks
 │   │   │   ├── pricing/         # Public pricing page
 │   │   │   ├── chat/            # Chat interface (SSE streaming)
-│   │   │   └── dashboard/       # Bookings, analytics, properties, billing
+│   │   │   └── dashboard/       # Bookings, analytics, properties, knowledge, billing
 │   │   ├── components/
 │   │   │   ├── auth/            # OAuthButtons, LoginForm, RegisterForm
 │   │   │   ├── chat/            # ChatWindow, MessageBubble, ToolCallCard
 │   │   │   ├── dashboard/       # BookingTable, OccupancyChart, PropertyCard
 │   │   │   ├── billing/         # PricingCard, UsageMeter, PlanBadge
+│   │   │   ├── knowledge/       # DropZone, PipelineView, SearchPanel
 │   │   │   └── ui/              # Header, Sidebar, LoadingSkeleton
 │   │   └── lib/                 # API client, auth helpers, hooks
 │   ├── Dockerfile
 │   └── package.json
-├── .aws/                        # AWS ECS infrastructure
+├── .aws/                        # Retired ECS infrastructure (reference)
 │   ├── backend-task-def.json
 │   ├── frontend-task-def.json
 │   ├── mcp-task-def.json
@@ -471,8 +520,14 @@ villa-ops-ai/
 │   └── nginx/                   # Nginx config + Dockerfile
 ├── .github/workflows/
 │   ├── ci.yml                   # CI: lint (ruff+mypy) + test + build
-│   └── deploy.yml               # Deploy: targeted ECR + ECS + Cloudflare DNS
-├── docker-compose.yml           # Dev: 5 services (frontend + backend + MCP + postgres + redis)
+│   └── deploy.yml               # Retired ECS deploy (manual trigger only)
+├── mcp-servers/                 # Booking.com, Airbnb, Tripadvisor MCP servers
+├── scripts/demo.sh              # On-demand EC2 demo server: create/deploy/start/stop/status/destroy
+├── docs/images/                 # README screenshots (archive/ = previous UI)
+├── docs/knowledge-samples/      # Sample knowledge-base documents (Markdown + PDF)
+├── docker-compose.yml           # Dev: 8 services (frontend, backend, MCP, 3 market MCPs, postgres, redis)
+├── docker-compose.prod.yml      # Production overrides + Caddy
+├── Caddyfile                    # HTTPS reverse proxy
 ├── .env.example                 # Environment variable template
 └── README.md
 ```
@@ -504,16 +559,22 @@ All variables are configured via `.env` (see [`.env.example`](.env.example) for 
 | **Stripe** | | |
 | `STRIPE_SECRET_KEY` | No* | Stripe secret key (*required for billing features) |
 | `STRIPE_PUBLISHABLE_KEY` | No* | Stripe publishable key |
-| `STRIPE_WEBHOOK_SECRET` | No* | Stripe webhook signing secret |
+| `STRIPE_WEBHOOK_SECRET` | No* | Stripe webhook signing secret(s), comma-separated (e.g. dashboard endpoint + `stripe listen`) |
 | `STRIPE_PRO_PRICE_ID` | No* | Stripe Price ID for Pro plan |
 | `STRIPE_BUSINESS_PRICE_ID` | No* | Stripe Price ID for Business plan |
 | **LLM** | | |
-| `DEFAULT_LLM_MODEL` | No | LiteLLM model string (default: `gemini/gemini-3.5-flash`) |
-| `GEMINI_API_KEY` | Yes** | Google Gemini API key (**at least one LLM key required) |
-| `ANTHROPIC_API_KEY` | No | Anthropic API key (fallback) |
-| `OPENAI_API_KEY` | No | OpenAI API key (fallback) |
-| `OPENROUTER_API_KEY` | No | OpenRouter API key (fallback, free models) |
-| `OPENROUTER_FALLBACK_MODEL` | No | OpenRouter fallback model (default: `openrouter/nvidia/nemotron-3-ultra-550b-a55b:free`) |
+| `OPENROUTER_API_KEY` | Yes | OpenRouter API key — all picker models run through OpenRouter |
+| `DEFAULT_LLM_MODEL` | No | Default model (default: `openrouter/openai/gpt-6-luna`) |
+| `LLM_FALLBACK_MODELS` | No | JSON list tried after the primary stalls/errors (default: Nemotron 3.5 Lightning free, Gemini 3.1 Flash-Lite) |
+| `TITLE_LLM_MODEL` | No | Model for conversation titles (default: `openrouter/google/gemini-3.1-flash-lite`) |
+| `MCP_TOOLS_CACHE_TTL` | No | Seconds to cache each MCP server's tool list (default: `600`) |
+| `GEMINI_API_KEY` / `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` | No | Optional direct provider keys |
+| **Knowledge base** | | |
+| `PINECONE_API_KEY` | No* | Pinecone API key (*required for the Knowledge page and `kb_search`) |
+| `PINECONE_INDEX` | No | Index name, created on first use (default: `villaops-kb`) |
+| `PINECONE_EMBED_MODEL` / `PINECONE_RERANK_MODEL` | No | Defaults: `llama-text-embed-v2` / `bge-reranker-v2-m3` (empty rerank = off) |
+| **Observability** | | |
+| `LANGSMITH_TRACING` / `LANGSMITH_API_KEY` / `LANGSMITH_PROJECT` | No | LangSmith tracing for every LangGraph run |
 | **Web Search** | | |
 | `EXA_API_KEY` | No | Exa API key for the `web_search` tool |
 | **Services** | | |

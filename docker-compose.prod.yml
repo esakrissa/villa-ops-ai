@@ -1,0 +1,80 @@
+# Production overrides for the single-VM demo deploy (scripts/demo.sh).
+#
+#   DOMAIN=villaops.esakrissa.com docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# - Caddy terminates HTTPS (automatic Let's Encrypt for $DOMAIN) and routes
+#   /api, /health, /docs → backend, everything else → the Next.js production build.
+# - No source volume mounts, no --reload, databases not exposed on the host.
+services:
+  caddy:
+    image: caddy:2.10-alpine
+    container_name: villa-ops-caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN:-:80}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+      - frontend
+    restart: unless-stopped
+
+  frontend:
+    build:
+      target: prod
+    ports: !reset []
+    volumes: !reset []
+    environment: !reset []
+    restart: unless-stopped
+
+  backend:
+    ports: !reset []
+    volumes: !reset []
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1 --proxy-headers --forwarded-allow-ips="*"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://villa:villa_secret@postgres:5432/villa_ops
+      - REDIS_URL=redis://redis:6379/0
+      - MCP_SERVER_URL=http://mcp:8001/mcp
+      - BOOKING_MCP_URL=http://booking-mcp:8002/mcp
+      - AIRBNB_MCP_URL=http://airbnb-mcp:8003/mcp
+      - TRIPADVISOR_MCP_URL=http://tripadvisor-mcp:8004/mcp
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - FRONTEND_URL=https://${DOMAIN}
+      - CORS_ORIGINS=["https://${DOMAIN}"]
+      - GOOGLE_REDIRECT_URI=https://${DOMAIN}/api/v1/auth/google/callback
+      - GITHUB_REDIRECT_URI=https://${DOMAIN}/api/v1/auth/github/callback
+
+  mcp:
+    ports: !reset []
+    volumes: !reset []
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://villa:villa_secret@postgres:5432/villa_ops
+      - REDIS_URL=redis://redis:6379/0
+      - ENVIRONMENT=production
+
+  booking-mcp:
+    ports: !reset []
+    volumes: !reset []
+
+  airbnb-mcp:
+    ports: !reset []
+    volumes: !reset []
+
+  tripadvisor-mcp:
+    ports: !reset []
+    volumes: !reset []
+
+  postgres:
+    ports: !reset []
+
+  redis:
+    ports: !reset []
+
+volumes:
+  caddy_data:
+  caddy_config:

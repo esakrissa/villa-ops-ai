@@ -1,11 +1,10 @@
 name: Deploy to AWS
 
+# Retired 2026-11: the ECS Fargate stack was shut down to save cost and the live
+# demo now runs on one on-demand EC2 instance (scripts/demo.sh). Kept for
+# reference; manual trigger only so pushes to main don't try to deploy.
 on:
   workflow_dispatch:
-  workflow_run:
-    workflows: ["CI"]
-    types: [completed]
-    branches: [main]
 
 concurrency:
   group: deploy-production
