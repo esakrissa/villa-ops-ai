@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { ChatMessage } from "@/lib/hooks/useChat";
 import { CheckIcon, CopyIcon } from "@/components/ui/icons";
 import { LogoMark } from "@/components/ui/Logo";
@@ -84,10 +85,17 @@ const markdownComponents = {
     </div>
   ),
   thead: ({ children }: { children?: React.ReactNode }) => <thead className="bg-gray-50">{children}</thead>,
-  th: ({ children }: { children?: React.ReactNode }) => (
-    <th className="px-3 py-2 text-left font-mono text-[11px] font-medium uppercase tracking-wider text-gray-500">{children}</th>
+  th: ({ children, style }: { children?: React.ReactNode; style?: React.CSSProperties }) => (
+    <th style={style} className="whitespace-nowrap px-3 py-2 text-left font-mono text-[11px] font-medium uppercase tracking-wider text-gray-500">
+      {children}
+    </th>
   ),
-  td: ({ children }: { children?: React.ReactNode }) => <td className="border-t border-gray-100 px-3 py-2">{children}</td>,
+  td: ({ children, style }: { children?: React.ReactNode; style?: React.CSSProperties }) => (
+    <td style={style} className="border-t border-gray-100 px-3 py-2 align-top tabular-nums">
+      {children}
+    </td>
+  ),
+  del: ({ children }: { children?: React.ReactNode }) => <del className="text-gray-400">{children}</del>,
 };
 
 export function MessageBubble({ message, showAvatar = true, onResumeConversation }: MessageBubbleProps) {
@@ -145,7 +153,7 @@ export function MessageBubble({ message, showAvatar = true, onResumeConversation
 
         {hasContent && (
           <div className="pt-px text-[15px] leading-[1.7] text-gray-800">
-            <Markdown components={markdownComponents}>{message.content}</Markdown>
+            <Markdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{message.content}</Markdown>
             {message.isStreaming && (
               <span className="ml-0.5 inline-block h-[1.05em] w-[7px] translate-y-[3px] animate-pulse rounded-[2px] bg-lime" />
             )}

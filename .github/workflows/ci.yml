@@ -172,27 +172,6 @@ jobs:
       - name: Build frontend image
         run: docker build -t villa-ops-frontend:${{ github.sha }} --target prod ./frontend
 
-      # --- ECR push (on main branch only) ---
-      - name: Configure AWS credentials
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
-
-      - name: Login to Amazon ECR
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Push images to ECR
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG: ${{ github.sha }}
-        run: |
-          docker tag villa-ops-backend:$IMAGE_TAG $ECR_REGISTRY/villa-ops-backend:$IMAGE_TAG
-          docker push $ECR_REGISTRY/villa-ops-backend:$IMAGE_TAG
-          docker tag villa-ops-frontend:$IMAGE_TAG $ECR_REGISTRY/villa-ops-frontend:$IMAGE_TAG
-          docker push $ECR_REGISTRY/villa-ops-frontend:$IMAGE_TAG
+      # The ECR push for the retired ECS stack was removed (2026-11): its AWS
+      # credentials belong to a shut-down account and failed every main build.
+      # The live demo is built on the EC2 host by scripts/demo.sh deploy.
