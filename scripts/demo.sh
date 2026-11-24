@@ -199,7 +199,7 @@ cmd_start() {
   local state; state="$(instance_state "$IID")"
   if [[ "$state" != "running" ]]; then
     [[ "$state" == "stopping" ]] && command aws --profile "$PROFILE" --region "$REGION" ec2 wait instance-stopped --instance-ids "$IID"
-    say "Starting $IID…"
+    say "Starting ${IID}…"
     aws ec2 start-instances --instance-ids "$IID" >/dev/null
     command aws --profile "$PROFILE" --region "$REGION" ec2 wait instance-running --instance-ids "$IID"
   fi
