@@ -14,6 +14,7 @@ from app.api.v1.billing import router as billing_router
 from app.api.v1.bookings import router as bookings_router
 from app.api.v1.chat import router as chat_router
 from app.api.v1.guests import router as guests_router
+from app.api.v1.knowledge import router as knowledge_router
 from app.api.v1.properties import router as properties_router
 from app.api.v1.webhooks import router as webhooks_router
 from app.config import settings
@@ -28,8 +29,26 @@ logging.basicConfig(
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Application lifespan handler for startup and shutdown events."""
-    # Startup
+    # Startup — knowledge documents interrupted mid-ingestion can't resume
+    try:
+        from app.knowledge.pipeline import fail_interrupted_documents
+
+        if failed := await fail_interrupted_documents():
+            logging.getLogger(__name__).warning("Marked %d interrupted knowledge documents as failed", failed)
+    except Exception:
+        logging.getLogger(__name__).exception("Knowledge startup check failed")
+
+    # Warm the MCP tool cache so the first chat message doesn't pay for discovery
+    import asyncio
+
+    from app.agent.graph import get_mcp_sources
+    from app.agent.mcp_client import load_mcp_tools
+
+    app.state.mcp_warmup = asyncio.create_task(  # noqa: RUF006 — reference kept on app.state
+        load_mcp_tools([url for _, url in get_mcp_sources()])
+    )
     yield
+    app.state.mcp_warmup.cancel()
     # Shutdown — dispose engine connections
     from app.database import engine
 
@@ -64,6 +83,7 @@ app.include_router(bookings_router)
 app.include_router(guests_router)
 app.include_router(analytics_router)
 app.include_router(chat_router)
+app.include_router(knowledge_router)
 app.include_router(webhooks_router)
 
 

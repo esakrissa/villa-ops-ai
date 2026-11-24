@@ -40,6 +40,9 @@ dependencies = [
     "psycopg[binary]>=3.1.0",
     # Payments
     "stripe>=16.1.0,<17",
+    # Knowledge base (document text extraction; vectors live in Pinecone via REST)
+    "pypdf>=7.1.1,<8",
+    "python-docx>=1.2.0,<2",
     # Utilities
     "python-multipart>=0.0.18",
 ]

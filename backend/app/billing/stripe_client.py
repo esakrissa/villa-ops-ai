@@ -115,6 +115,19 @@ async def get_subscription(subscription_id: str) -> stripe.Subscription:
 
 
 def construct_webhook_event(payload: bytes, sig_header: str) -> stripe.Event:
-    """Verify and construct a Stripe webhook event (synchronous)."""
+    """Verify and construct a Stripe webhook event (synchronous).
+
+    ``STRIPE_WEBHOOK_SECRET`` may hold several comma-separated secrets, e.g. the
+    Dashboard endpoint's secret plus the local ``stripe listen`` secret, so the
+    same deployment accepts both. The first secret that verifies wins.
+    """
     client = get_stripe_client()
-    return client.construct_event(payload, sig_header, settings.stripe_webhook_secret)
+    secrets = [s.strip() for s in settings.stripe_webhook_secret.split(",") if s.strip()] or [""]
+    last_error: stripe.SignatureVerificationError | None = None
+    for secret in secrets:
+        try:
+            return client.construct_event(payload, sig_header, secret)
+        except stripe.SignatureVerificationError as e:
+            last_error = e
+    assert last_error is not None
+    raise last_error

@@ -10,6 +10,7 @@ Flow:
                       └─ NO  → END
 """
 
+import asyncio
 import logging
 import os
 
@@ -17,6 +18,7 @@ from langchain_litellm import ChatLiteLLM
 from langgraph.graph import END, START, StateGraph
 from langgraph.prebuilt import ToolNode
 
+from app.agent.llm_options import llm_extra_kwargs
 from app.agent.mcp_client import load_mcp_tools
 from app.agent.nodes import create_agent_node, create_tools_node_with_confirmation, should_continue
 from app.agent.state import AgentState
@@ -28,11 +30,21 @@ logger = logging.getLogger(__name__)
 DESTRUCTIVE_TOOLS = {"property_delete", "guest_delete"}
 
 
-# Models offered in the composer's model picker. Only those whose provider key
-# is configured are shown/accepted.
+# Models offered in the composer's model picker (all via OpenRouter). Only those
+# whose provider key is configured are shown/accepted. Benchmarked 2026-11-24 on
+# the full agent prompt (26 tools, ~11k tokens): every model below answers a
+# tool-using step in ~1.5-3 s and picked the right tool 3/3 times.
 CHAT_MODELS: list[dict[str, str]] = [
-    {"id": "gemini/gemini-3.5-flash", "label": "Gemini 3.5 Flash", "key": "gemini_api_key"},
-    {"id": "xiaomi_mimo/mimo-v2.6-pro", "label": "MiMo 2.6 Pro", "key": "xiaomi_mimo_api_key"},
+    # Paid (cheap): ~$0.002-0.006 per chat message
+    {"id": "openrouter/openai/gpt-6-luna", "label": "GPT-6 Luna", "key": "openrouter_api_key"},
+    {"id": "openrouter/anthropic/claude-haiku-5.5", "label": "Claude Haiku 5.5", "key": "openrouter_api_key"},
+    {"id": "openrouter/google/gemini-3.1-flash-lite", "label": "Gemini 3.1 Flash-Lite", "key": "openrouter_api_key"},
+    # Free (OpenRouter free tier: rate-limited per minute/day)
+    {"id": "openrouter/nvidia/nemotron-3.5-lightning:free", "label": "Nemotron 3.5 Lightning · free", "key": "openrouter_api_key"},
+    {"id": "openrouter/dots-studio/dots-3-note-preview:free", "label": "Dots 3 Note · free", "key": "openrouter_api_key"},
+    {"id": "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free", "label": "Nemotron 3 Ultra 550B · free", "key": "openrouter_api_key"},
+    {"id": "openrouter/recursive/flint-v1.0:free", "label": "Flint 1.0 · free", "key": "openrouter_api_key"},
+    {"id": "openrouter/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free", "label": "Nemotron 3 Nano Omni · free", "key": "openrouter_api_key"},
 ]
 
 
@@ -73,13 +85,15 @@ async def list_agent_tools() -> list[dict]:
     Used by the UI's tool toggle menu. Unreachable sources are skipped.
     """
     tools: list[dict] = []
-    for source, url in get_mcp_sources():
-        try:
-            for tool in await load_mcp_tools(url):
-                description = (tool.description or "").strip().splitlines()[0] if tool.description else ""
-                tools.append({"name": tool.name, "description": description, "source": source})
-        except Exception:
-            logger.warning("Could not list tools from %s source", source, exc_info=True)
+    sources = get_mcp_sources()
+    results = await asyncio.gather(*(load_mcp_tools(url) for _, url in sources), return_exceptions=True)
+    for (source, _url), loaded in zip(sources, results, strict=True):
+        if isinstance(loaded, BaseException):
+            logger.warning("Could not list tools from %s source: %r", source, loaded)
+            continue
+        for tool in loaded:
+            description = (tool.description or "").strip().splitlines()[0] if tool.description else ""
+            tools.append({"name": tool.name, "description": description, "source": source})
     return tools
 
 
@@ -100,59 +114,42 @@ async def create_agent(checkpointer=None, disabled_tools: set[str] | None = None
     """
     primary_model = resolve_model(model)
     # Set API keys for LiteLLM
+    if settings.openrouter_api_key:
+        os.environ["OPENROUTER_API_KEY"] = settings.openrouter_api_key
     if settings.gemini_api_key:
         os.environ["GEMINI_API_KEY"] = settings.gemini_api_key
     if settings.anthropic_api_key:
         os.environ["ANTHROPIC_API_KEY"] = settings.anthropic_api_key
     if settings.openai_api_key:
         os.environ["OPENAI_API_KEY"] = settings.openai_api_key
-    if settings.openrouter_api_key:
-        os.environ["OPENROUTER_API_KEY"] = settings.openrouter_api_key
-    if settings.xiaomi_mimo_api_key:
-        os.environ["XIAOMI_MIMO_API_KEY"] = settings.xiaomi_mimo_api_key
 
-    # Load MCP tools as LangChain tools (non-fatal per URL)
+    # Load MCP tools as LangChain tools (non-fatal per URL, cached per server)
     tools = await load_mcp_tools([url for _, url in get_mcp_sources()])
     if disabled_tools:
         tools = [t for t in tools if t.name not in disabled_tools]
         logger.info("Disabled by user: %s", sorted(disabled_tools))
     logger.info("Loaded %d MCP tools", len(tools))
 
-    # Build fallback model list for LiteLLM — if the primary model is
-    # unreachable, requests are retried against the next available provider.
-    fallback_models = []
-    if settings.gemini_api_key:
-        fallback_models.extend(
-            m for m in [settings.default_llm_model, *settings.gemini_fallback_models] if m != primary_model
-        )
-    mimo_model = "xiaomi_mimo/mimo-v2.6-pro"
-    if settings.xiaomi_mimo_api_key and primary_model != mimo_model:
-        fallback_models.append(mimo_model)
-    if settings.anthropic_api_key:
-        fallback_models.append("anthropic/claude-sonnet-4-20250514")
-    if settings.openai_api_key:
-        fallback_models.append("openai/gpt-4o-mini")
-    if settings.openrouter_api_key:
-        fallback_models.append(settings.openrouter_fallback_model)
+    # Primary, the primary again (a stalled stream is usually one slow provider
+    # host — OpenRouter routes the retry elsewhere), then the fallback chain.
+    # The agent node moves on when a model gives no output within
+    # FIRST_TOKEN_DEADLINE_S or errors (rate limit, 503).
+    model_ids = [primary_model, primary_model]
+    model_ids += [m for m in dict.fromkeys(settings.llm_fallback_models) if m != primary_model]
+    logger.info("LLM chain: %s", model_ids)
 
-    fallback_models = [m for m in dict.fromkeys(fallback_models) if m != primary_model]
-    if fallback_models:
-        logger.info("LLM fallbacks configured: %s", fallback_models)
-
-    # Create one LLM per model via LiteLLM (supports Gemini, Claude, GPT via
-    # unified API). The agent node chains them with LangChain's with_fallbacks(),
-    # which (unlike LiteLLM's `fallbacks` kwarg) also works while streaming.
     llms = [
         ChatLiteLLM(
             model=model_id,
             temperature=1.0,
             max_tokens=4096,
             max_retries=0,  # fail over to the next model instead of retrying
-            # Without a timeout a hung Gemini request blocks for ~10 min and
-            # with_fallbacks() never gets a chance to try the next model.
+            # Without a timeout a hung request blocks for ~10 min
             request_timeout=30,
+            model_kwargs=llm_extra_kwargs(model_id),
+            streaming=True,
         )
-        for model_id in dict.fromkeys([primary_model, *fallback_models])
+        for model_id in model_ids
     ]
 
     # Build the graph

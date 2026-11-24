@@ -14,6 +14,8 @@ const LABELS: Record<string, { running: string; done: string }> = {
   property_manage: { running: "Managing property", done: "Managed property" },
   property_delete: { running: "Removing property", done: "Removed property" },
   send_notification: { running: "Sending notification", done: "Sent notification" },
+  kb_search: { running: "Searching knowledge base", done: "Searched knowledge base" },
+  kb_list_documents: { running: "Listing documents", done: "Listed documents" },
   booking_search_hotels: { running: "Searching Booking.com", done: "Searched Booking.com" },
   booking_hotel_details: { running: "Opening Booking.com hotel", done: "Opened Booking.com hotel" },
   airbnb_search: { running: "Searching Airbnb", done: "Searched Airbnb" },

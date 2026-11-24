@@ -62,7 +62,7 @@ class ConversationResponse(BaseModel):
 class AgentModelResponse(BaseModel):
     """A chat model the user can pick in the composer."""
 
-    id: str  # LiteLLM model id, e.g. "xiaomi_mimo/mimo-v2.6-pro"
+    id: str  # LiteLLM model id, e.g. "openrouter/openai/gpt-6-luna"
     label: str
     default: bool
 

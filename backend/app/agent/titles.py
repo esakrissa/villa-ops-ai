@@ -13,6 +13,7 @@ import re
 
 import litellm
 
+from app.agent.llm_options import llm_extra_kwargs
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -58,6 +59,7 @@ async def generate_llm_title(message: str) -> str | None:
                     messages=[{"role": "user", "content": prompt}],
                     max_tokens=256,
                     temperature=1.0,
+                    **llm_extra_kwargs(model),
                 ),
                 timeout=TITLE_TIMEOUT_SECONDS,
             )

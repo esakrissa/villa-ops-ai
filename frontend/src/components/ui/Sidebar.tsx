@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/hooks/useAuth";
 import { Logo, LogoMark } from "./Logo";
 import {
   CalendarIcon,
+  BookIcon,
   CardIcon,
   ChartIcon,
   ChatIcon,
@@ -21,6 +22,7 @@ const navItems = [
   { label: "Overview", href: "/dashboard", icon: GridIcon },
   { label: "Bookings", href: "/dashboard/bookings", icon: CalendarIcon },
   { label: "Properties", href: "/dashboard/properties", icon: HomeIcon },
+  { label: "Knowledge", href: "/dashboard/knowledge", icon: BookIcon },
   { label: "Analytics", href: "/dashboard/analytics", icon: ChartIcon },
   { label: "Billing", href: "/dashboard/billing", icon: CardIcon },
 ];

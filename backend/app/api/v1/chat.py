@@ -15,8 +15,9 @@ import uuid
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage, ToolMessage
+from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, HumanMessage, RemoveMessage, ToolMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from langgraph.graph.message import REMOVE_ALL_MESSAGES
 from langgraph.types import Command
 from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -59,6 +60,45 @@ router = APIRouter(prefix="/api/v1/chat", tags=["chat"])
 # Guard against concurrent HITL resumes for the same conversation.
 # Prevents double-execution if the client retries the resume request.
 _active_resumes: set[uuid.UUID] = set()
+
+# Bound what each LLM call re-reads: recent turns only, and old tool results
+# (market searches can be several KB of JSON) shortened.
+HISTORY_MAX_MESSAGES = 30
+OLD_TOOL_RESULT_MAX_CHARS = 1500
+
+_checkpointer_ready = False
+
+
+async def _setup_checkpointer_once(checkpointer: AsyncPostgresSaver) -> None:
+    """Create LangGraph's checkpoint tables once per process, not on every message."""
+    global _checkpointer_ready
+    if not _checkpointer_ready:
+        await checkpointer.setup()
+        _checkpointer_ready = True
+
+
+def trim_history(history: list[BaseMessage]) -> list[BaseMessage]:
+    """Keep the last HISTORY_MAX_MESSAGES messages, starting at a user turn.
+
+    Starting mid-turn would leave a ToolMessage without its tool call, which
+    providers reject. Tool results from earlier turns are truncated.
+    """
+    if len(history) > HISTORY_MAX_MESSAGES:
+        history = history[-HISTORY_MAX_MESSAGES:]
+        while history and not isinstance(history[0], HumanMessage):
+            history = history[1:]
+    trimmed: list[BaseMessage] = []
+    for msg in history:
+        if (
+            isinstance(msg, ToolMessage)
+            and isinstance(msg.content, str)
+            and len(msg.content) > OLD_TOOL_RESULT_MAX_CHARS
+        ):
+            msg = msg.model_copy(
+                update={"content": msg.content[:OLD_TOOL_RESULT_MAX_CHARS] + "\n…[truncated earlier tool result]"}
+            )
+        trimmed.append(msg)
+    return trimmed
 
 
 async def _stream_agent(
@@ -265,10 +305,10 @@ async def chat(
     async def event_generator():
         db_uri = settings.psycopg_database_url
         async with AsyncPostgresSaver.from_conn_string(db_uri) as checkpointer:
-            await checkpointer.setup()
+            await _setup_checkpointer_once(checkpointer)
 
             async with async_session_factory() as session:
-                history = await load_conversation_messages(session, conversation_id, user_id)
+                history = trim_history(await load_conversation_messages(session, conversation_id, user_id))
 
             user_msg = HumanMessage(content=message_text)
             history.append(user_msg)
@@ -276,7 +316,11 @@ async def chat(
             agent = await create_agent(checkpointer=checkpointer, disabled_tools=disabled_tools, model=model_name)
 
             config = {"configurable": {"thread_id": str(conversation_id)}}
-            agent_input = {"messages": history, "user_id": str(user_id)}
+            # Reset the thread to the DB history (source of truth), then add this turn
+            agent_input = {
+                "messages": [RemoveMessage(id=REMOVE_ALL_MESSAGES), *history],
+                "user_id": str(user_id),
+            }
             new_messages: list = [user_msg]
 
             title_task = asyncio.create_task(generate_llm_title(message_text)) if is_new_conversation else None
@@ -363,7 +407,7 @@ async def resume_conversation(
         db_uri = settings.psycopg_database_url
         try:
             async with AsyncPostgresSaver.from_conn_string(db_uri) as checkpointer:
-                await checkpointer.setup()
+                await _setup_checkpointer_once(checkpointer)
                 agent = await create_agent(
                     checkpointer=checkpointer, disabled_tools=set(body.disabled_tools), model=model_name
                 )
