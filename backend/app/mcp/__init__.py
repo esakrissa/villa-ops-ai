@@ -1,19 +1,18 @@
-"""MCP package — shared FastMCP instance and session factory."""
+"""MCP package — shared MCPServer instance and session factory."""
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 from mcp.server.transport_security import TransportSecuritySettings
 
-# Shared FastMCP instance — tools register on this via @mcp.tool()
-mcp = FastMCP(
+# Shared MCPServer instance — tools register on this via @mcp.tool()
+mcp = MCPServer(
     name="villaops-mcp",
     instructions="VillaOps AI MCP server. Provides tools for managing bookings, guests, and properties for Bali villa/hotel property managers.",
-    port=8001,
-    stateless_http=True,
-    json_response=True,
-    transport_security=TransportSecuritySettings(
-        enable_dns_rebinding_protection=True,
-        allowed_hosts=["localhost:8001", "mcp:8001", "127.0.0.1:8001", "mcp.villaops.local:8001"],
-    ),
+)
+
+# Transport security for the Streamable HTTP app (passed to streamable_http_app() in server.py)
+transport_security = TransportSecuritySettings(
+    enable_dns_rebinding_protection=True,
+    allowed_hosts=["localhost:8001", "mcp:8001", "127.0.0.1:8001", "mcp.villaops.local:8001"],
 )
 
 # Session factory — set by server.py at startup, used by tool modules

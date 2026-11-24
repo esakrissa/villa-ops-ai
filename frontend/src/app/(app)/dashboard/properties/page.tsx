@@ -60,7 +60,7 @@ export default function PropertiesPage() {
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Properties</h1>
+          <h1 className="display text-[44px] text-ink">Properties</h1>
           <p className="mt-1 text-sm text-gray-500">
             Manage your vacation properties.
           </p>
@@ -68,7 +68,7 @@ export default function PropertiesPage() {
         <button
           onClick={handleAdd}
           disabled={atLimit}
-          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           + Add Property
         </button>
@@ -127,7 +127,7 @@ export default function PropertiesPage() {
           {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
-              className="animate-pulse rounded-lg border border-gray-200 bg-white p-6"
+              className="animate-pulse panel p-6"
             >
               <div className="flex justify-between">
                 <div className="h-5 w-32 rounded bg-gray-200" />
@@ -172,7 +172,7 @@ export default function PropertiesPage() {
           <button
             onClick={handleAdd}
             disabled={atLimit}
-            className="mt-4 rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className="mt-4 rounded-full bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             + Add Property
           </button>
@@ -216,7 +216,7 @@ export default function PropertiesPage() {
             <div className="mt-6 flex justify-end gap-3">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
               >
                 Cancel
               </button>

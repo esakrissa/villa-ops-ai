@@ -3,11 +3,11 @@
 import type { Booking } from "@/lib/hooks/useBookings";
 
 const STATUS_STYLES: Record<string, string> = {
-  pending: "bg-yellow-100 text-yellow-800",
-  confirmed: "bg-blue-100 text-blue-800",
-  checked_in: "bg-green-100 text-green-800",
-  checked_out: "bg-gray-100 text-gray-800",
-  cancelled: "bg-red-100 text-red-800",
+  pending: "bg-[#f6e7c8] text-[#7a5418]",
+  confirmed: "bg-ink text-cream",
+  checked_in: "bg-lime text-coal",
+  checked_out: "bg-gray-100 text-gray-600",
+  cancelled: "bg-[#f5ddd3] text-[#8a3b22]",
 };
 
 function formatDate(dateStr: string): string {
@@ -164,7 +164,7 @@ export function BookingTable({
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+    <div className="overflow-x-auto panel">
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
@@ -216,7 +216,7 @@ export function BookingTable({
                 </td>
                 <td className="whitespace-nowrap px-4 py-3 text-sm">
                   <span
-                    className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${STATUS_STYLES[booking.status] || "bg-gray-100 text-gray-800"}`}
+                    className={`inline-flex rounded-full px-2.5 py-1 text-[12px] font-medium ${STATUS_STYLES[booking.status] || "bg-gray-100 text-gray-800"}`}
                   >
                     {formatStatus(booking.status)}
                   </span>

@@ -1,10 +1,11 @@
 """Agent reasoning and routing nodes for the LangGraph graph."""
 
+import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
 from typing import Literal
 
-from langchain_core.messages import SystemMessage, ToolMessage
+from langchain_core.messages import AIMessageChunk, BaseMessage, SystemMessage, ToolMessage, message_chunk_to_message
 from langchain_litellm import ChatLiteLLM
 from langgraph.graph import END
 from langgraph.types import interrupt
@@ -17,10 +18,75 @@ logger = logging.getLogger(__name__)
 # Bali / WITA timezone (UTC+8)
 BALI_TZ = timezone(timedelta(hours=8))
 
+# Seconds to wait for a model's first token before abandoning that request and
+# trying the next one. Models usually answer in 1-3 s but a provider host can
+# stall for 20-100 s before the first token; a retry almost always lands on a fast one.
+# LiteLLM's request_timeout doesn't cover a stream that never starts.
+FIRST_TOKEN_DEADLINE_S = 8.0
 
-def create_agent_node(llm: ChatLiteLLM, tools: list):
-    """Create the agent node function with tools bound to the LLM."""
-    llm_with_tools = llm.bind_tools(tools)
+
+def _has_output(chunk: AIMessageChunk) -> bool:
+    return bool(chunk.content or chunk.tool_call_chunks)
+
+
+async def invoke_with_first_token_deadline(models: list, messages: list[BaseMessage]) -> BaseMessage:
+    """Stream from each model in turn; move on if no output arrives in time.
+
+    Nothing has been streamed to the user when an attempt is abandoned, so
+    failover never shows duplicate partial text. The last model gets no
+    deadline. Errors (503, rate limits) also fail over.
+    """
+    last_error: BaseException | None = None
+    for i, model in enumerate(models):
+        is_last = i == len(models) - 1
+        stream = model.astream(messages)
+        received: list[AIMessageChunk] = []
+
+        async def first_output() -> None:
+            async for chunk in stream:  # noqa: B023 — awaited before the loop advances
+                received.append(chunk)  # noqa: B023
+                if _has_output(chunk):
+                    return
+
+        try:
+            await asyncio.wait_for(first_output(), timeout=None if is_last else FIRST_TOKEN_DEADLINE_S)
+            async for chunk in stream:
+                received.append(chunk)
+        except TimeoutError as e:
+            logger.warning("Model #%d gave no output within %.0fs — trying the next one", i, FIRST_TOKEN_DEADLINE_S)
+            last_error = e
+            await stream.aclose()
+            continue
+        except Exception as e:
+            logger.warning("Model #%d failed (%r) — trying the next one", i, e)
+            last_error = e
+            await stream.aclose()
+            if is_last:
+                raise
+            continue
+
+        if not received:
+            continue
+        merged = received[0]
+        for chunk in received[1:]:
+            merged = merged + chunk
+        return message_chunk_to_message(merged)
+
+    raise last_error or RuntimeError("No model produced a response")
+
+
+def create_agent_node(
+    llm: ChatLiteLLM | list[ChatLiteLLM],
+    tools: list,
+    disabled_tools: set[str] | None = None,
+):
+    """Create the agent node function with tools bound to the LLM.
+
+    Accepts a single LLM or a list ordered by preference — later entries are
+    used as fallbacks when an earlier model errors (e.g. 503 overloaded).
+    """
+    llms = llm if isinstance(llm, list) else [llm]
+    bound = [m.bind_tools(tools) for m in llms]
 
     async def agent_node(state: AgentState) -> dict:
         """Call the LLM with conversation history and available tools."""
@@ -35,15 +101,25 @@ def create_agent_node(llm: ChatLiteLLM, tools: list):
             f"Use this as the reference for 'today', 'tomorrow', 'this week', etc."
         )
         system_content = SYSTEM_PROMPT + time_context
+        if disabled_tools:
+            system_content += (
+                "\n\n## Disabled Tools\n"
+                f"The user has switched off these tools: {', '.join(sorted(disabled_tools))}. "
+                "Do not call them. If a request needs one, say which tool is turned off and that "
+                "they can re-enable it from the tools menu in the chat composer."
+            )
 
         if user_id:
             system_content += (
                 f"\n\nIMPORTANT: The current user's ID is '{user_id}'. "
-                "You MUST pass this as the 'user_id' parameter in EVERY tool call "
-                "to ensure data isolation. Never omit the user_id parameter."
+                "You MUST pass this as the 'user_id' parameter in EVERY VillaOps tool call "
+                "to ensure data isolation. Never omit the user_id parameter on tools that accept it."
             )
         messages = [SystemMessage(content=system_content)] + state["messages"]
-        response = await llm_with_tools.ainvoke(messages)
+        if len(bound) == 1:
+            response = await bound[0].ainvoke(messages)
+        else:
+            response = await invoke_with_first_token_deadline(bound, messages)
         return {"messages": [response]}
 
     return agent_node

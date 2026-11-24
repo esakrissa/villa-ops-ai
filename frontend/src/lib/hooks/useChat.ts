@@ -2,6 +2,8 @@
 
 import { useState, useCallback, useRef } from "react";
 import { API_BASE_URL, apiFetch } from "@/lib/api";
+import { readDisabledTools } from "./useAgentTools";
+import { readSelectedModel } from "./useAgentModels";
 
 // Tools that require HITL confirmation before execution
 const DESTRUCTIVE_TOOLS = new Set(["property_delete", "guest_delete"]);
@@ -45,9 +47,12 @@ interface UseChatReturn {
   isLoading: boolean;
   error: string | null;
   conversationId: string | null;
+  /** LLM-generated title for a new conversation, streamed as a `title` event */
+  generatedTitle: string | null;
   sendMessage: (message: string) => Promise<void>;
   resumeConversation: (action: "approve" | "cancel") => Promise<void>;
   clearMessages: () => void;
+  stopGeneration: () => void;
   setConversationId: (id: string | null) => void;
   loadConversation: (id: string) => Promise<void>;
 }
@@ -62,6 +67,7 @@ export function useChat(): UseChatReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [generatedTitle, setGeneratedTitle] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const sendMessage = useCallback(
@@ -108,6 +114,8 @@ export function useChat(): UseChatReturn {
           body: JSON.stringify({
             message,
             conversation_id: conversationId,
+            disabled_tools: readDisabledTools(),
+            model: readSelectedModel(),
           }),
           signal: abortRef.current.signal,
         });
@@ -254,6 +262,10 @@ export function useChat(): UseChatReturn {
                     });
                     break;
 
+                  case "title":
+                    setGeneratedTitle(event.title);
+                    break;
+
                   case "done":
                     setConversationId(event.conversation_id);
                     setMessages((prev) =>
@@ -381,7 +393,7 @@ export function useChat(): UseChatReturn {
               "Content-Type": "application/json",
               ...(token ? { Authorization: `Bearer ${token}` } : {}),
             },
-            body: JSON.stringify({ action }),
+            body: JSON.stringify({ action, disabled_tools: readDisabledTools(), model: readSelectedModel() }),
             signal: abortRef.current.signal,
           },
         );
@@ -626,6 +638,7 @@ export function useChat(): UseChatReturn {
 
       setMessages(loaded);
       setConversationId(id);
+      setGeneratedTitle(null);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to load conversation",
@@ -635,10 +648,19 @@ export function useChat(): UseChatReturn {
     }
   }, []);
 
+  const stopGeneration = useCallback(() => {
+    abortRef.current?.abort();
+    setIsLoading(false);
+    setMessages((prev) =>
+      prev.map((m) => (m.isStreaming ? { ...m, isStreaming: false } : m)),
+    );
+  }, []);
+
   const clearMessages = useCallback(() => {
     abortRef.current?.abort();
     setMessages([]);
     setConversationId(null);
+    setGeneratedTitle(null);
     setError(null);
   }, []);
 
@@ -647,9 +669,11 @@ export function useChat(): UseChatReturn {
     isLoading,
     error,
     conversationId,
+    generatedTitle,
     sendMessage,
     resumeConversation,
     clearMessages,
+    stopGeneration,
     setConversationId,
     loadConversation,
   };

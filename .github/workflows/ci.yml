@@ -89,7 +89,7 @@ jobs:
       STRIPE_WEBHOOK_SECRET: whsec_test_fake
       STRIPE_PRO_PRICE_ID: price_test_pro
       STRIPE_BUSINESS_PRICE_ID: price_test_business
-      DEFAULT_LLM_MODEL: gemini/gemini-3-flash-preview
+      DEFAULT_LLM_MODEL: gemini/gemini-3.5-flash
       FRONTEND_URL: http://localhost:3000
       CORS_ORIGINS: '["http://localhost:3000"]'
 
@@ -124,6 +124,36 @@ jobs:
           --cov-report=xml
           --cov-fail-under=80
           tests/ -v
+
+  mcp-servers:
+    name: Market MCP Servers (${{ matrix.server }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        server: [booking.com-mcp, airbnb-mcp, tripadvisor-mcp]
+    defaults:
+      run:
+        working-directory: mcp-servers/${{ matrix.server }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]" ruff
+
+      - name: Run ruff
+        run: ruff check --output-format=github src tests
+
+      # Tests use recorded responses in tests/fixtures — no API keys or network needed
+      - name: Run tests
+        run: pytest -q
 
   build:
     name: Build Docker Images

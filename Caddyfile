@@ -1,0 +1,26 @@
+# Reverse proxy for the demo VM (docker-compose.prod.yml).
+# {$DOMAIN} = villaops.esakrissa.com → automatic HTTPS via Let's Encrypt.
+# DOMAIN=":80" serves plain HTTP on the IP (before DNS points here).
+{$DOMAIN} {
+	# Backend: API (incl. SSE chat + knowledge streams), health, API docs
+	@backend path /api/* /health /docs /docs/* /redoc /openapi.json
+	handle @backend {
+		reverse_proxy backend:8000 {
+			# Stream SSE events immediately instead of buffering
+			flush_interval -1
+			transport http {
+				read_timeout 300s
+			}
+		}
+	}
+
+	# Everything else: Next.js production server
+	handle {
+		encode zstd gzip
+		reverse_proxy frontend:3000
+	}
+
+	request_body {
+		max_size 12MB
+	}
+}

@@ -94,7 +94,7 @@ export default function BookingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Bookings</h1>
+        <h1 className="display text-[44px] text-ink">Bookings</h1>
         <p className="mt-1 text-sm text-gray-500">
           Manage and track all your property bookings.
         </p>
@@ -107,7 +107,7 @@ export default function BookingsPage() {
           onChange={(e) =>
             setFilters({ ...filters, status: e.target.value || undefined })
           }
-          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className="field"
         >
           {STATUSES.map((s) => (
             <option key={s.value} value={s.value}>
@@ -124,7 +124,7 @@ export default function BookingsPage() {
               property_id: e.target.value || undefined,
             })
           }
-          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          className="field"
         >
           <option value="">All Properties</option>
           {properties.map((p) => (
@@ -145,7 +145,7 @@ export default function BookingsPage() {
                 check_in_from: e.target.value || undefined,
               })
             }
-            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="field"
           />
         </div>
 
@@ -160,7 +160,7 @@ export default function BookingsPage() {
                 check_in_to: e.target.value || undefined,
               })
             }
-            className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="field"
           />
         </div>
       </div>
@@ -193,14 +193,14 @@ export default function BookingsPage() {
           <button
             onClick={() => setPage(page - 1)}
             disabled={page <= 1}
-            className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Previous
           </button>
           <button
             onClick={() => setPage(page + 1)}
             disabled={page >= totalPages}
-            className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Next
           </button>

@@ -16,7 +16,7 @@ export function OAuthButtons() {
       <button
         type="button"
         onClick={handleGoogleLogin}
-        className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+        className="flex h-11 w-full items-center justify-center gap-3 rounded-full border border-gray-200 bg-white px-4 text-sm font-medium text-ink transition-colors hover:border-gray-300 hover:bg-gray-50"
       >
         <svg className="h-5 w-5" viewBox="0 0 24 24">
           <path
@@ -42,7 +42,7 @@ export function OAuthButtons() {
       <button
         type="button"
         onClick={handleGithubLogin}
-        className="flex w-full items-center justify-center gap-3 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+        className="flex h-11 w-full items-center justify-center gap-3 rounded-full border border-gray-200 bg-white px-4 text-sm font-medium text-ink transition-colors hover:border-gray-300 hover:bg-gray-50"
       >
         <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
           <path

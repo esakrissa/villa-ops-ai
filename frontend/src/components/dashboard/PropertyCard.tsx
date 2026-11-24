@@ -2,29 +2,29 @@
 
 import type { Property } from "@/lib/hooks/useProperties";
 
-const STATUS_STYLES: Record<string, string> = {
-  active: "bg-green-100 text-green-700",
-  maintenance: "bg-amber-100 text-amber-700",
-  inactive: "bg-gray-100 text-gray-700",
+const SCENES = ["scene-sunset", "scene-jungle", "scene-ocean", "scene-dusk", "scene-rice"];
+
+const STATUS_DOT: Record<string, string> = {
+  active: "bg-lime",
+  maintenance: "bg-clay",
+  inactive: "bg-gray-400",
 };
 
-const TYPE_ICONS: Record<string, string> = {
-  villa: "\u{1F3E1}",
-  hotel: "\u{1F3E8}",
-  guesthouse: "\u{1F3E0}",
-};
-
-function formatStatus(status: string): string {
-  return status.replace(/\b\w/g, (c) => c.toUpperCase());
+/** Stable scene per property so cards keep their look between renders. */
+function sceneFor(id: string): string {
+  let hash = 0;
+  for (const ch of id) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+  return SCENES[hash % SCENES.length];
 }
 
-function formatPrice(price: string | null): string {
-  if (!price) return "No price set";
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-  }).format(Number(price)) + "/night";
+function formatPrice(price: string | null): string | null {
+  if (!price) return null;
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(Number(price));
+}
+
+function formatAmenity(amenity: string): string {
+  const text = amenity.replace(/_/g, " ");
+  return text.length <= 3 ? text.toUpperCase() : text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 interface PropertyCardProps {
@@ -34,71 +34,69 @@ interface PropertyCardProps {
 }
 
 export function PropertyCard({ property, onEdit, onDelete }: PropertyCardProps) {
-  const icon = TYPE_ICONS[property.property_type] || "\u{1F3E0}";
-  const statusStyle = STATUS_STYLES[property.status] || "bg-gray-100 text-gray-700";
+  const price = formatPrice(property.base_price_per_night);
+  const dot = STATUS_DOT[property.status] || "bg-gray-400";
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-xl">{icon}</span>
-          <h3 className="text-lg font-semibold text-gray-900">
+    <article className="group flex flex-col overflow-hidden rounded-[28px] border border-gray-200/80 bg-white transition-[box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:shadow-[0_20px_40px_-24px_rgb(47_44_37/0.45)]">
+      {/* Scene header */}
+      <div className={`${sceneFor(property.id)} grain relative flex h-48 flex-col justify-between p-4`}>
+        <div className="flex items-center justify-between">
+          <span className="glass flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-medium capitalize text-coal">
+            <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
+            {property.status}
+          </span>
+          <span className="glass-dark rounded-full px-2.5 py-1 font-mono text-[10px] uppercase tracking-widest text-cream">
+            {property.property_type}
+          </span>
+        </div>
+        <div className="flex items-end justify-between gap-3">
+          <h3 className="display text-[30px] leading-[1.02] text-cream drop-shadow-[0_1px_8px_rgb(0_0_0/0.25)]">
             {property.name}
           </h3>
-        </div>
-        <span
-          className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${statusStyle}`}
-        >
-          {formatStatus(property.status)}
-        </span>
-      </div>
-
-      {property.location && (
-        <p className="mt-1 text-sm text-gray-500">{property.location}</p>
-      )}
-
-      <div className="mt-4 space-y-2 text-sm text-gray-600">
-        <div className="flex items-center gap-4">
-          <span className="capitalize">{property.property_type}</span>
-          {property.max_guests && (
-            <>
-              <span className="text-gray-300">&middot;</span>
-              <span>{property.max_guests} guests</span>
-            </>
+          {price && (
+            <span className="glass shrink-0 rounded-2xl px-3 py-1.5 text-right">
+              <span className="block font-serif text-[22px] leading-none text-coal">{price}</span>
+              <span className="block font-mono text-[9px] uppercase tracking-widest text-coal/60">per night</span>
+            </span>
           )}
         </div>
-        <p className="font-medium text-gray-900">
-          {formatPrice(property.base_price_per_night)}
-        </p>
       </div>
 
-      {property.amenities && property.amenities.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {property.amenities.map((amenity) => (
-            <span
-              key={amenity}
-              className="rounded-full bg-indigo-50 px-2 py-0.5 text-xs text-indigo-700"
-            >
-              {amenity}
-            </span>
-          ))}
+      {/* Details */}
+      <div className="flex flex-1 flex-col p-5">
+        <div className="flex items-center gap-2 text-[13px] text-gray-500">
+          {property.location && <span className="truncate">{property.location}</span>}
+          {property.location && property.max_guests && <span className="text-gray-300">·</span>}
+          {property.max_guests && <span className="shrink-0">Sleeps {property.max_guests}</span>}
         </div>
-      )}
 
-      <div className="mt-4 flex gap-2 border-t border-gray-100 pt-4">
-        <button
-          onClick={() => onEdit(property)}
-          className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-        >
-          Edit
-        </button>
-        <button
-          onClick={() => onDelete(property)}
-          className="rounded-md border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
-        >
-          Delete
-        </button>
+        {property.amenities && property.amenities.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {property.amenities.slice(0, 5).map((amenity) => (
+              <span key={amenity} className="rounded-full bg-sand px-2.5 py-1 text-[12px] text-gray-700">
+                {formatAmenity(amenity)}
+              </span>
+            ))}
+            {property.amenities.length > 5 && (
+              <span className="rounded-full px-2 py-1 text-[12px] text-gray-400">+{property.amenities.length - 5}</span>
+            )}
+          </div>
+        )}
+
+        <div className="mt-auto flex gap-2 pt-5">
+          <button type="button" onClick={() => onEdit(property)} className="btn-sand !px-4 !py-1.5 !text-[13px]">
+            Edit
+          </button>
+          <button
+            type="button"
+            onClick={() => onDelete(property)}
+            className="rounded-full px-4 py-1.5 text-[13px] font-medium text-gray-500 transition-colors hover:bg-red-50 hover:text-red-600"
+          >
+            Delete
+          </button>
+        </div>
       </div>
-    </div>
+    </article>
   );
 }

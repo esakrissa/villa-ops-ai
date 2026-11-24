@@ -45,7 +45,7 @@ export function RegisterForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
+        <div className="rounded-2xl bg-red-50 p-3 text-sm text-red-600">
           {error}
         </div>
       )}
@@ -64,7 +64,7 @@ export function RegisterForm() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Your name"
-          className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+          className="field mt-1.5 block w-full !h-11 placeholder-gray-400"
         />
       </div>
 
@@ -82,7 +82,7 @@ export function RegisterForm() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@example.com"
-          className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+          className="field mt-1.5 block w-full !h-11 placeholder-gray-400"
         />
       </div>
 
@@ -101,7 +101,7 @@ export function RegisterForm() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Min. 8 characters"
-          className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+          className="field mt-1.5 block w-full !h-11 placeholder-gray-400"
         />
       </div>
 
@@ -120,14 +120,14 @@ export function RegisterForm() {
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           placeholder="Repeat password"
-          className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-400 shadow-sm focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+          className="field mt-1.5 block w-full !h-11 placeholder-gray-400"
         />
       </div>
 
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
+        className="btn-ink w-full !py-3 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {loading ? "Creating account..." : "Create account"}
       </button>

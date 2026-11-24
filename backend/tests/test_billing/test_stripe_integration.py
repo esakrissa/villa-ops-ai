@@ -38,7 +38,7 @@ class TestStripeIntegration:
         )
         assert customer.id.startswith("cus_")
         assert customer.email == "integration-test@villaops.test"
-        assert customer.metadata.get("villaops_user_id") == "test-integration-user-id"
+        assert customer.metadata["villaops_user_id"] == "test-integration-user-id"
 
     async def test_create_checkout_session_returns_url(self):
         """Verify checkout session creation returns a valid URL."""

@@ -9,6 +9,7 @@ the tools that loaded successfully.
 
 import asyncio
 import logging
+import time
 from typing import Any
 
 from langchain_core.tools import StructuredTool
@@ -18,6 +19,12 @@ from pydantic import BaseModel, Field, create_model
 
 # Timeout (seconds) for individual MCP tool calls to prevent hanging streams
 MCP_TOOL_CALL_TIMEOUT = 30
+# Timeout (seconds) for discovering one server's tools
+MCP_LIST_TOOLS_TIMEOUT = 15
+
+# url -> (loaded_at, tools). Tool discovery opens a session per server and
+# costs ~3 s per chat message (Exa alone ~2.7 s); the tool list rarely changes.
+_tools_cache: dict[str, tuple[float, list[StructuredTool]]] = {}
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +38,7 @@ JSON_TYPE_MAP: dict[str, type] = {
 
 
 def _build_args_model(tool_name: str, input_schema: dict) -> type[BaseModel]:
-    """Build a Pydantic model from an MCP tool's JSON Schema inputSchema."""
+    """Build a Pydantic model from an MCP tool's JSON Schema input_schema."""
     properties = input_schema.get("properties", {})
     required = set(input_schema.get("required", []))
 
@@ -60,7 +67,7 @@ async def _call_mcp_tool(mcp_url: str, tool_name: str, **kwargs: Any) -> str:
     args = {k: v for k, v in kwargs.items() if v is not None}
     try:
         async with asyncio.timeout(MCP_TOOL_CALL_TIMEOUT):
-            async with streamable_http_client(mcp_url) as (read, write, _), ClientSession(read, write) as session:
+            async with streamable_http_client(mcp_url) as (read, write), ClientSession(read, write) as session:
                 await session.initialize()
                 result = await session.call_tool(tool_name, args)
                 return result.content[0].text
@@ -71,13 +78,13 @@ async def _call_mcp_tool(mcp_url: str, tool_name: str, **kwargs: Any) -> str:
 
 async def _load_tools_from_url(mcp_url: str) -> list[StructuredTool]:
     """Load tools from a single MCP server URL."""
-    async with streamable_http_client(mcp_url) as (read, write, _), ClientSession(read, write) as session:
+    async with streamable_http_client(mcp_url) as (read, write), ClientSession(read, write) as session:
             await session.initialize()
             tools_response = await session.list_tools()
 
     langchain_tools = []
     for mcp_tool in tools_response.tools:
-        args_model = _build_args_model(mcp_tool.name, mcp_tool.inputSchema)
+        args_model = _build_args_model(mcp_tool.name, mcp_tool.input_schema)
 
         # Create a closure for this specific tool — default args capture current values
         async def tool_fn(_tool_name=mcp_tool.name, _mcp_url=mcp_url, **kwargs):
@@ -94,8 +101,26 @@ async def _load_tools_from_url(mcp_url: str) -> list[StructuredTool]:
     return langchain_tools
 
 
-async def load_mcp_tools(mcp_urls: list[str] | str) -> list[StructuredTool]:
+async def _load_cached(url: str, ttl: float) -> list[StructuredTool]:
+    cached = _tools_cache.get(url)
+    if cached and time.monotonic() - cached[0] < ttl:
+        return cached[1]
+    async with asyncio.timeout(MCP_LIST_TOOLS_TIMEOUT):
+        tools = await _load_tools_from_url(url)
+    _tools_cache[url] = (time.monotonic(), tools)
+    logger.info("Loaded %d tools from %s: %s", len(tools), url.split("?")[0], [t.name for t in tools])
+    return tools
+
+
+def clear_tools_cache() -> None:
+    _tools_cache.clear()
+
+
+async def load_mcp_tools(mcp_urls: list[str] | str, ttl: float | None = None) -> list[StructuredTool]:
     """Connect to MCP server(s), discover tools, and return LangChain-compatible tools.
+
+    Servers are queried in parallel and each server's tool list is cached for
+    ``ttl`` seconds (default ``settings.mcp_tools_cache_ttl``; 0 disables).
 
     Args:
         mcp_urls: A single MCP URL string or a list of MCP URLs.
@@ -104,16 +129,16 @@ async def load_mcp_tools(mcp_urls: list[str] | str) -> list[StructuredTool]:
     """
     if isinstance(mcp_urls, str):
         mcp_urls = [mcp_urls]
+    if ttl is None:
+        from app.config import settings
 
+        ttl = settings.mcp_tools_cache_ttl
+
+    results = await asyncio.gather(*(_load_cached(url, ttl) for url in mcp_urls), return_exceptions=True)
     all_tools: list[StructuredTool] = []
-
-    for url in mcp_urls:
-        try:
-            tools = await _load_tools_from_url(url)
-            all_tools.extend(tools)
-            logger.info("Loaded %d tools from %s: %s", len(tools), url, [t.name for t in tools])
-        except Exception:
-            logger.warning("Failed to load MCP tools from %s — skipping", url, exc_info=True)
-
-    logger.info("Total MCP tools loaded: %d", len(all_tools))
+    for url, result in zip(mcp_urls, results, strict=True):
+        if isinstance(result, BaseException):
+            logger.warning("Failed to load MCP tools from %s — skipping (%r)", url.split("?")[0], result)
+            continue
+        all_tools.extend(result)
     return all_tools

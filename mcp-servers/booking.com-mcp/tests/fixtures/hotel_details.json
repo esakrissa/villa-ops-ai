@@ -1,0 +1,407 @@
+{
+ "hotel_id": 6048884,
+ "hotel_name": "Arya Wellness - female only",
+ "url": "https://www.booking.com/hotel/id/arya-wellness-retreat.html",
+ "review_nr": 1276,
+ "accommodation_type_name": "Hostels",
+ "latitude": -8.514281,
+ "longitude": 115.260506,
+ "address": "Jalan Monkey Forest 92",
+ "city": "Ubud",
+ "district": "Ubud City-Centre",
+ "distance_to_cc": 0.786245407878091,
+ "currency_code": "IDR",
+ "available_rooms": 4,
+ "hotel_include_breakfast": 1,
+ "composite_price_breakdown": {
+  "price_display_config": [
+   {
+    "value": 0,
+    "key": "use_nightly_prices"
+   },
+   {
+    "value": 0,
+    "key": "use_nightly_as_dominant"
+   },
+   {
+    "value": 1,
+    "key": "use_js_tracking"
+   }
+  ],
+  "gross_amount": {
+   "currency": "USD",
+   "amount_unrounded": "US$91",
+   "amount_rounded": "US$91",
+   "value": 91.0025158067411
+  },
+  "gross_amount_hotel_currency": {
+   "currency": "IDR",
+   "amount_unrounded": "Rp\u00a01,651,240",
+   "value": 1651239.6694,
+   "amount_rounded": "Rp\u00a01,651,240"
+  },
+  "all_inclusive_amount_hotel_currency": {
+   "value": 1651239.6694,
+   "amount_rounded": "Rp\u00a01,651,240",
+   "amount_unrounded": "Rp\u00a01,651,240",
+   "currency": "IDR"
+  },
+  "gross_amount_per_night": {
+   "amount_unrounded": "US$30.33",
+   "currency": "USD",
+   "value": 30.3341719355804,
+   "amount_rounded": "US$30"
+  },
+  "excluded_amount": {
+   "value": 8.19842484874514,
+   "amount_rounded": "US$8",
+   "currency": "USD",
+   "amount_unrounded": "US$8.20"
+  },
+  "charges_details": {
+   "translated_copy": "",
+   "amount": {
+    "currency": "USD",
+    "value": 8
+   },
+   "mode": "extra_charges"
+  },
+  "strikethrough_amount_per_night": {
+   "amount_unrounded": "US$37.92",
+   "currency": "USD",
+   "amount_rounded": "US$38",
+   "value": 37.9177149195741
+  },
+  "has_long_stays_weekly_rate_price": 0,
+  "items": [
+   {
+    "item_amount": {
+     "currency": "USD",
+     "amount_unrounded": "US$8.20",
+     "amount_rounded": "US$8",
+     "value": 8.19842484874514
+    },
+    "inclusion_type": "excluded",
+    "kind": "charge",
+    "base": {
+     "kind": "percentage",
+     "percentage": 10
+    },
+    "name": "Tax",
+    "details": "10 % Tax",
+    "breakdown": []
+   },
+   {
+    "item_amount": {
+     "amount_rounded": "US$9",
+     "value": 9.01826733031294,
+     "currency": "USD",
+     "amount_unrounded": "US$9.02"
+    },
+    "kind": "charge",
+    "inclusion_type": "included",
+    "name": "Service charge",
+    "base": {
+     "kind": "percentage",
+     "percentage": 10
+    },
+    "breakdown": [],
+    "details": "10 % Service charge"
+   },
+   {
+    "item_amount": {
+     "value": 22.7506289519814,
+     "amount_rounded": "US$23",
+     "amount_unrounded": "US$22.75",
+     "currency": "USD"
+    },
+    "breakdown": [],
+    "name": "Bonus savings",
+    "kind": "discount",
+    "identifier": "basic-deal",
+    "details": "You\u2019re getting a reduced rate because this property is offering a discount.",
+    "base": {
+     "kind": "rate"
+    }
+   }
+  ],
+  "rewards_benefits": [],
+  "discounted_amount": {
+   "amount_unrounded": "US$22.75",
+   "currency": "USD",
+   "amount_rounded": "US$23",
+   "value": 22.7506289519814
+  },
+  "all_inclusive_amount": {
+   "value": 99.2009406554863,
+   "amount_rounded": "US$99",
+   "amount_unrounded": "US$99.20",
+   "currency": "USD"
+  },
+  "net_amount": {
+   "currency": "USD",
+   "amount_unrounded": "US$81.98",
+   "value": 81.9842484764282,
+   "amount_rounded": "US$82"
+  },
+  "has_long_stays_monthly_rate_price": 0,
+  "benefits": [
+   {
+    "name": "US$23 off",
+    "badge_variant": "constructive",
+    "identifier": "combined-discount",
+    "details": "You\u2019re getting a reduced rate because this property is offering a Bonus savings.",
+    "kind": "badge",
+    "icon": ""
+   }
+  ],
+  "benefit_texts": [],
+  "strikethrough_amount": {
+   "amount_rounded": "US$114",
+   "value": 113.753144758722,
+   "amount_unrounded": "US$113.75",
+   "currency": "USD"
+  },
+  "tax_exceptions": [],
+  "included_taxes_and_charges_amount": {
+   "value": 9.01826733031294,
+   "amount_rounded": "US$9",
+   "currency": "USD",
+   "amount_unrounded": "US$9.02"
+  }
+ },
+ "property_highlight_strip": [
+  {
+   "name": "Outdoor pool",
+   "icon_list": [
+    {
+     "icon": "iconset/pool",
+     "size": 1
+    }
+   ]
+  },
+  {
+   "icon_list": [
+    {
+     "size": 1,
+     "icon": "iconset/food"
+    }
+   ],
+   "name": "Restaurant"
+  },
+  {
+   "name": "Spa & wellness centre",
+   "icon_list": [
+    {
+     "icon": "iconset/spa",
+     "size": 1
+    }
+   ]
+  },
+  {
+   "icon_list": [
+    {
+     "size": 1,
+     "icon": "iconset/checkmark"
+    }
+   ],
+   "name": "Balcony"
+  },
+  {
+   "icon_list": [
+    {
+     "icon": "iconset/snowflake",
+     "size": 1
+    }
+   ],
+   "name": "Air conditioning"
+  },
+  {
+   "icon_list": [
+    {
+     "size": 1,
+     "icon": "iconset/eye"
+    }
+   ],
+   "name": "View"
+  },
+  {
+   "icon_list": [
+    {
+     "icon": "iconset/wifi",
+     "size": 1
+    }
+   ],
+   "name": "Free WiFi"
+  },
+  {
+   "name": "Adults only",
+   "icon_list": [
+    {
+     "icon": "iconset/checkmark",
+     "size": 1
+    }
+   ]
+  },
+  {
+   "icon_list": [
+    {
+     "size": 1,
+     "icon": "iconset/shower"
+    }
+   ],
+   "name": "Shower"
+  },
+  {
+   "name": "Airport shuttle",
+   "icon_list": [
+    {
+     "icon": "iconset/shuttle",
+     "size": 1
+    }
+   ]
+  }
+ ],
+ "facilities_block": {
+  "type": "popular",
+  "facilities": [
+   {
+    "icon": "pool",
+    "name": "1 swimming pool"
+   },
+   {
+    "name": "Airport shuttle",
+    "icon": "shuttle"
+   },
+   {
+    "icon": "nosmoking",
+    "name": "Non-smoking rooms"
+   },
+   {
+    "icon": "spa",
+    "name": "Spa & wellness centre"
+   },
+   {
+    "name": "Restaurant",
+    "icon": "food_and_drink"
+   },
+   {
+    "icon": "wifi",
+    "name": "WiFi available in all areas"
+   },
+   {
+    "icon": "wifi",
+    "name": "Free WiFi"
+   }
+  ],
+  "name": "Most popular facilities"
+ },
+ "hotel_important_information_with_codes": [
+  {
+   "is_license": 1,
+   "phrase": "License number: <strong>55120, 9120105301144</strong>"
+  },
+  {
+   "phrase": "A damage deposit of IDR 100000 is required on arrival. That's about USD 5. This will be collected as a cash payment. You should be reimbursed on check-out. Your deposit will be refunded in full in cash, subject to an inspection of the property.",
+   "sentence_id": 8,
+   "executing_phase": 0
+  }
+ ],
+ "rawData": {
+  "longitude": 115.260506,
+  "checkoutDate": "2026-11-05",
+  "currency": "IDR",
+  "propertyClass": 3,
+  "checkinDate": "2026-11-04",
+  "checkout": {
+   "fromTime": "00:00",
+   "untilTime": "11:00"
+  },
+  "position": 0,
+  "checkin": {
+   "fromTime": "14:00",
+   "untilTime": "00:00"
+  },
+  "optOutFromGalleryChanges": 0,
+  "mainPhotoId": 240523370,
+  "qualityClass": 0,
+  "photoUrls": [
+   "https://cf.bstatic.com/xdata/images/hotel/square60/240523370.jpg?k=bccaecba720d0c339f77408827183f1bca84b1345d512d9a37c26b0269d16d8d&o="
+  ],
+  "isHighlightedHotel": true,
+  "blockIds": [
+   "604888415_237266766_2_1_0"
+  ],
+  "reviewScoreWord": "Superb",
+  "wishlistName": "Ubud",
+  "isFirstPage": true,
+  "priceBreakdown": {
+   "chargesInfo": "Includes taxes and charges",
+   "grossPrice": {
+    "amountRounded": "Rp\u00a02,500,000",
+    "value": 2500000.0001,
+    "currency": "IDR"
+   },
+   "benefitBadges": [],
+   "taxExceptions": []
+  },
+  "countryCode": "id",
+  "ufi": -2701757,
+  "reviewScore": 9.4,
+  "reviewCount": 1277,
+  "name": "Arya Wellness - female only",
+  "rankingPosition": 0,
+  "accuratePropertyClass": 3,
+  "id": 6048884,
+  "latitude": -8.514281
+ },
+ "rooms": {
+  "604888410": {
+   "photos": [
+    {
+     "last_update_date": "2020-01-23 09:07:58",
+     "url_square180": "https://cf.bstatic.com/xdata/images/hotel/square180/240111108.jpg?k=00dd38a5fc560a5f821a46645ca65a2435849ebd2a55fb2180404796ca55ed58&o=",
+     "url_640x200": "https://cf.bstatic.com/xdata/images/hotel/640x200/240111108.jpg?k=00dd38a5fc560a5f821a46645ca65a2435849ebd2a55fb2180404796ca55ed58&o=",
+     "photo_id": 240111108,
+     "url_max300": "https://cf.bstatic.com/xdata/images/hotel/max300/240111108.jpg?k=00dd38a5fc560a5f821a46645ca65a2435849ebd2a55fb2180404796ca55ed58&o=",
+     "url_max750": "https://cf.bstatic.com/xdata/images/hotel/max750/240111108.jpg?k=00dd38a5fc560a5f821a46645ca65a2435849ebd2a55fb2180404796ca55ed58&o=",
+     "ratio": 1.33186185406388,
+     "url_square60": "https://cf.bstatic.com/xdata/images/hotel/square60/240111108.jpg?k=00dd38a5fc560a5f821a46645ca65a2435849ebd2a55fb2180404796ca55ed58&o=",
+     "url_max1280": "https://cf.bstatic.com/xdata/images/hotel/1280x900/240111108.jpg?k=00dd38a5fc560a5f821a46645ca65a2435849ebd2a55fb2180404796ca55ed58&o=",
+     "url_original": "https://cf.bstatic.com/xdata/images/hotel/max500/240111108.jpg?k=00dd38a5fc560a5f821a46645ca65a2435849ebd2a55fb2180404796ca55ed58&o="
+    },
+    {
+     "url_max1280": "https://cf.bstatic.com/xdata/images/hotel/1280x900/240111078.jpg?k=0f4185edf278f4c60b696c0ba62159655d45e621cd9eed1ee419a24c3e0e7e5a&o=",
+     "url_original": "https://cf.bstatic.com/xdata/images/hotel/max500/240111078.jpg?k=0f4185edf278f4c60b696c0ba62159655d45e621cd9eed1ee419a24c3e0e7e5a&o=",
+     "url_square60": "https://cf.bstatic.com/xdata/images/hotel/square60/240111078.jpg?k=0f4185edf278f4c60b696c0ba62159655d45e621cd9eed1ee419a24c3e0e7e5a&o=",
+     "url_max750": "https://cf.bstatic.com/xdata/images/hotel/max750/240111078.jpg?k=0f4185edf278f4c60b696c0ba62159655d45e621cd9eed1ee419a24c3e0e7e5a&o=",
+     "ratio": 1.332,
+     "url_640x200": "https://cf.bstatic.com/xdata/images/hotel/640x200/240111078.jpg?k=0f4185edf278f4c60b696c0ba62159655d45e621cd9eed1ee419a24c3e0e7e5a&o=",
+     "last_update_date": "2020-01-23 09:07:51",
+     "url_square180": "https://cf.bstatic.com/xdata/images/hotel/square180/240111078.jpg?k=0f4185edf278f4c60b696c0ba62159655d45e621cd9eed1ee419a24c3e0e7e5a&o=",
+     "url_max300": "https://cf.bstatic.com/xdata/images/hotel/max300/240111078.jpg?k=0f4185edf278f4c60b696c0ba62159655d45e621cd9eed1ee419a24c3e0e7e5a&o=",
+     "photo_id": 240111078
+    },
+    {
+     "url_square60": "https://cf.bstatic.com/xdata/images/hotel/square60/240111070.jpg?k=706fac2823de3a762e8f3b72ae93628714cefa6e90403d3ad5c68888b292bc03&o=",
+     "url_max1280": "https://cf.bstatic.com/xdata/images/hotel/1280x900/240111070.jpg?k=706fac2823de3a762e8f3b72ae93628714cefa6e90403d3ad5c68888b292bc03&o=",
+     "url_original": "https://cf.bstatic.com/xdata/images/hotel/max500/240111070.jpg?k=706fac2823de3a762e8f3b72ae93628714cefa6e90403d3ad5c68888b292bc03&o=",
+     "ratio": 1.33198380566802,
+     "url_max750": "https://cf.bstatic.com/xdata/images/hotel/max750/240111070.jpg?k=706fac2823de3a762e8f3b72ae93628714cefa6e90403d3ad5c68888b292bc03&o=",
+     "url_max300": "https://cf.bstatic.com/xdata/images/hotel/max300/240111070.jpg?k=706fac2823de3a762e8f3b72ae93628714cefa6e90403d3ad5c68888b292bc03&o=",
+     "photo_id": 240111070,
+     "last_update_date": "2020-01-23 09:07:46",
+     "url_640x200": "https://cf.bstatic.com/xdata/images/hotel/640x200/240111070.jpg?k=706fac2823de3a762e8f3b72ae93628714cefa6e90403d3ad5c68888b292bc03&o=",
+     "url_square180": "https://cf.bstatic.com/xdata/images/hotel/square180/240111070.jpg?k=706fac2823de3a762e8f3b72ae93628714cefa6e90403d3ad5c68888b292bc03&o="
+    }
+   ]
+  }
+ },
+ "block": [
+  {
+   "name": "Bed in 4-Bed Female Dormitory Room - Free cancellation",
+   "room_name": "Bed in 4-Bed Female Dormitory Room",
+   "breakfast_included": 1
+  }
+ ]
+}

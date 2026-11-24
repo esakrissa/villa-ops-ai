@@ -57,18 +57,43 @@ class Settings(BaseSettings):
     stripe_pro_price_id: str = ""
     stripe_business_price_id: str = ""
 
-    # LLM (LiteLLM)
-    default_llm_model: str = "gemini/gemini-3-flash-preview"
+    # LLM (LiteLLM). Chat models run through OpenRouter (see CHAT_MODELS in app/agent/graph.py).
+    default_llm_model: str = "openrouter/openai/gpt-6-luna"
+    # Tried in order after the primary model stalls or errors
+    llm_fallback_models: list[str] = [
+        "openrouter/nvidia/nemotron-3.5-lightning:free",
+        "openrouter/google/gemini-3.1-flash-lite",
+    ]
+    # Small fast model for conversation titles (falls back to default_llm_model)
+    title_llm_model: str = "openrouter/google/gemini-3.1-flash-lite"
+    openrouter_api_key: str = ""
+    # Optional direct provider keys (not used by the picker)
     gemini_api_key: str = ""
     anthropic_api_key: str = ""
     openai_api_key: str = ""
+    # Seconds to cache each MCP server's tool list (discovery costs ~3 s per message, mostly Exa)
+    mcp_tools_cache_ttl: int = 600
     litellm_cache_enabled: bool = True
 
     # MCP Server
     mcp_server_url: str = "http://localhost:8001/mcp"
 
+    # Market data MCP servers (mcp-servers/ in this repo); empty URL = source disabled
+    booking_mcp_url: str = ""
+    airbnb_mcp_url: str = ""
+    tripadvisor_mcp_url: str = ""
+
     # Exa (Web Search via hosted MCP)
     exa_api_key: str = ""
+
+    # Knowledge base (Pinecone, integrated embedding + reranking). Empty key = feature off.
+    pinecone_api_key: str = ""
+    pinecone_index: str = "villaops-kb"
+    pinecone_embed_model: str = "llama-text-embed-v2"
+    pinecone_rerank_model: str = "bge-reranker-v2-m3"  # "" disables reranking
+    kb_max_upload_mb: int = 10
+    kb_chunk_tokens: int = 350
+    kb_chunk_overlap_tokens: int = 50
 
     # Frontend
     frontend_url: str = "http://localhost:3000"

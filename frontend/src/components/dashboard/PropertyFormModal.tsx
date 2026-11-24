@@ -131,7 +131,7 @@ export function PropertyFormModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="mx-4 w-full max-w-lg rounded-lg bg-white shadow-xl">
         <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">
+          <h2 className="text-[17px] font-medium tracking-tight text-ink">
             {isEdit ? "Edit Property" : "Add Property"}
           </h2>
           <button
@@ -344,14 +344,14 @@ export function PropertyFormModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+              className="rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving || planLimitError}
-              className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {saving
                 ? "Saving..."

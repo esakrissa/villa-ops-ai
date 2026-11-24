@@ -9,6 +9,10 @@ todos/
 prompts/
 .claude/
 screenshots/
+demos/
+*.mp4
+*.mov
+*.webm
 
 # Python
 __pycache__/
@@ -58,3 +62,7 @@ htmlcov/
 *.tfstate
 *.tfstate.backup
 *.tfvars
+
+# Local MCP config (contains API keys) and Playwright MCP artifacts
+.mcp.json
+.playwright-mcp/

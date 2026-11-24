@@ -16,7 +16,7 @@ export default function Error({
 
   return (
     <div className="flex min-h-[60vh] items-center justify-center">
-      <div className="mx-4 w-full max-w-md rounded-lg border border-gray-200 bg-white p-8 text-center shadow-sm">
+      <div className="mx-4 w-full max-w-md panel p-8 text-center shadow-sm">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
           <svg
             className="h-6 w-6 text-red-600"
@@ -32,14 +32,14 @@ export default function Error({
             />
           </svg>
         </div>
-        <h2 className="text-lg font-semibold text-gray-900">
+        <h2 className="text-[17px] font-medium tracking-tight text-ink">
           Something went wrong
         </h2>
         <p className="mt-2 text-sm text-gray-600">{error.message}</p>
         <div className="mt-6 flex flex-col gap-3">
           <button
             onClick={reset}
-            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
+            className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
           >
             Try again
           </button>

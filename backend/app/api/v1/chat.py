@@ -7,6 +7,7 @@ GET  /api/v1/chat/conversations/{id}         — Get conversation with full hist
 DELETE /api/v1/chat/conversations/{id}       — Delete a conversation
 """
 
+import asyncio
 import json
 import logging
 import time
@@ -14,14 +15,17 @@ import uuid
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage, ToolMessage
+from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, HumanMessage, RemoveMessage, ToolMessage
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
+from langgraph.graph.message import REMOVE_ALL_MESSAGES
 from langgraph.types import Command
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sse_starlette.sse import EventSourceResponse
 from starlette.requests import Request
 
 from app.agent import create_agent
+from app.agent.graph import available_models, list_agent_tools, resolve_model
 from app.agent.memory import (
     create_conversation,
     delete_conversation,
@@ -32,12 +36,16 @@ from app.agent.memory import (
     load_conversation_messages,
     save_messages,
 )
+from app.agent.titles import TITLE_TIMEOUT_SECONDS, generate_llm_title
 from app.api.deps import check_ai_query_limit, get_current_active_user, get_db
 from app.config import settings
 from app.database import async_session_factory
+from app.models.conversation import Conversation
 from app.models.llm_usage import LLMUsage
 from app.models.user import User
 from app.schemas.chat import (
+    AgentModelResponse,
+    AgentToolResponse,
     ChatRequest,
     ConversationDetailResponse,
     ConversationResponse,
@@ -52,6 +60,45 @@ router = APIRouter(prefix="/api/v1/chat", tags=["chat"])
 # Guard against concurrent HITL resumes for the same conversation.
 # Prevents double-execution if the client retries the resume request.
 _active_resumes: set[uuid.UUID] = set()
+
+# Bound what each LLM call re-reads: recent turns only, and old tool results
+# (market searches can be several KB of JSON) shortened.
+HISTORY_MAX_MESSAGES = 30
+OLD_TOOL_RESULT_MAX_CHARS = 1500
+
+_checkpointer_ready = False
+
+
+async def _setup_checkpointer_once(checkpointer: AsyncPostgresSaver) -> None:
+    """Create LangGraph's checkpoint tables once per process, not on every message."""
+    global _checkpointer_ready
+    if not _checkpointer_ready:
+        await checkpointer.setup()
+        _checkpointer_ready = True
+
+
+def trim_history(history: list[BaseMessage]) -> list[BaseMessage]:
+    """Keep the last HISTORY_MAX_MESSAGES messages, starting at a user turn.
+
+    Starting mid-turn would leave a ToolMessage without its tool call, which
+    providers reject. Tool results from earlier turns are truncated.
+    """
+    if len(history) > HISTORY_MAX_MESSAGES:
+        history = history[-HISTORY_MAX_MESSAGES:]
+        while history and not isinstance(history[0], HumanMessage):
+            history = history[1:]
+    trimmed: list[BaseMessage] = []
+    for msg in history:
+        if (
+            isinstance(msg, ToolMessage)
+            and isinstance(msg.content, str)
+            and len(msg.content) > OLD_TOOL_RESULT_MAX_CHARS
+        ):
+            msg = msg.model_copy(
+                update={"content": msg.content[:OLD_TOOL_RESULT_MAX_CHARS] + "\n…[truncated earlier tool result]"}
+            )
+        trimmed.append(msg)
+    return trimmed
 
 
 async def _stream_agent(
@@ -80,6 +127,8 @@ async def _stream_agent(
         start_time = time.monotonic()
         total_input_tokens = 0
         total_output_tokens = 0
+        # Whether the current LLM step already streamed text via "messages" mode
+        streamed_text = False
 
         try:
             if new_messages is None:
@@ -98,22 +147,15 @@ async def _stream_agent(
                 if mode == "messages":
                     msg_chunk, _metadata = chunk
 
-                    # Stream text tokens to client
+                    # Stream text tokens to client. Tool calls are emitted from
+                    # "updates" only, where their args are complete.
                     if isinstance(msg_chunk, AIMessageChunk) and msg_chunk.content:
                         content = msg_chunk.content if isinstance(msg_chunk.content, str) else str(msg_chunk.content)
+                        streamed_text = True
                         yield json.dumps({
                             "type": "token",
                             "content": content,
                         })
-
-                    # Stream tool call events to client
-                    if isinstance(msg_chunk, AIMessageChunk) and msg_chunk.tool_calls:
-                        for tc in msg_chunk.tool_calls:
-                            yield json.dumps({
-                                "type": "tool_call",
-                                "name": tc.get("name", ""),
-                                "args": tc.get("args", {}),
-                            })
 
                 elif mode == "updates":
                     # Check for __interrupt__ events (HITL)
@@ -167,12 +209,22 @@ async def _stream_agent(
                                         "name": tc.get("name", ""),
                                         "args": tc.get("args", {}),
                                     })
-                            elif isinstance(msg, AIMessage) and msg.content and not msg.tool_calls:
+                            elif (
+                                isinstance(msg, AIMessage)
+                                and msg.content
+                                and not msg.tool_calls
+                                # Fallback for models that don't stream tokens via
+                                # "messages" mode — skip if already streamed
+                                and not streamed_text
+                            ):
                                 content = msg.content if isinstance(msg.content, str) else str(msg.content)
                                 yield json.dumps({
                                     "type": "token",
                                     "content": content,
                                 })
+
+                            if isinstance(msg, AIMessage):
+                                streamed_text = False
 
             stream_ok = True
 
@@ -242,34 +294,80 @@ async def chat(
         conversation_id = conv.id
         await db.commit()
 
+    # New conversations get an LLM-written title, generated alongside the agent run
+    is_new_conversation = chat_request.conversation_id is None
+
     user_id = user.id
     message_text = chat_request.message
-    model_name = settings.default_llm_model
+    disabled_tools = set(chat_request.disabled_tools)
+    model_name = resolve_model(chat_request.model)
 
     async def event_generator():
         db_uri = settings.psycopg_database_url
         async with AsyncPostgresSaver.from_conn_string(db_uri) as checkpointer:
-            await checkpointer.setup()
+            await _setup_checkpointer_once(checkpointer)
 
             async with async_session_factory() as session:
-                history = await load_conversation_messages(session, conversation_id, user_id)
+                history = trim_history(await load_conversation_messages(session, conversation_id, user_id))
 
             user_msg = HumanMessage(content=message_text)
             history.append(user_msg)
 
-            agent = await create_agent(checkpointer=checkpointer)
+            agent = await create_agent(checkpointer=checkpointer, disabled_tools=disabled_tools, model=model_name)
 
             config = {"configurable": {"thread_id": str(conversation_id)}}
-            agent_input = {"messages": history, "user_id": str(user_id)}
+            # Reset the thread to the DB history (source of truth), then add this turn
+            agent_input = {
+                "messages": [RemoveMessage(id=REMOVE_ALL_MESSAGES), *history],
+                "user_id": str(user_id),
+            }
             new_messages: list = [user_msg]
 
-            async for event in _stream_agent(
-                agent, agent_input, config, request,
-                conversation_id, user_id, model_name, new_messages,
-            ):
-                yield event
+            title_task = asyncio.create_task(generate_llm_title(message_text)) if is_new_conversation else None
+
+            try:
+                async for event in _stream_agent(
+                    agent, agent_input, config, request,
+                    conversation_id, user_id, model_name, new_messages,
+                ):
+                    # Emit the generated title just before the stream ends
+                    if title_task is not None and json.loads(event).get("type") in ("done", "interrupted"):
+                        title_event = await _apply_generated_title(title_task, conversation_id)
+                        title_task = None
+                        if title_event:
+                            yield title_event
+                    yield event
+            finally:
+                if title_task is not None and not title_task.done():
+                    title_task.cancel()
 
     return EventSourceResponse(event_generator())
+
+
+async def _apply_generated_title(title_task: asyncio.Task, conversation_id: uuid.UUID) -> str | None:
+    """Wait for the title task, save the title, and return a ``title`` SSE event.
+
+    Returns None (keeping the truncated fallback title) if generation failed.
+    """
+    try:
+        title = await asyncio.wait_for(title_task, timeout=TITLE_TIMEOUT_SECONDS)
+    except Exception:
+        logger.warning("Title generation did not finish for conversation %s", conversation_id)
+        return None
+    if not title:
+        return None
+
+    try:
+        async with async_session_factory() as session:
+            await session.execute(
+                update(Conversation).where(Conversation.id == conversation_id).values(title=title)
+            )
+            await session.commit()
+    except Exception:
+        logger.exception("Failed to save generated title for conversation %s", conversation_id)
+        return None
+
+    return json.dumps({"type": "title", "conversation_id": str(conversation_id), "title": title})
 
 
 @router.post("/{conversation_id}/resume")
@@ -293,7 +391,7 @@ async def resume_conversation(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Conversation not found",
         )
-
+    model_name = resolve_model(body.model)
     model_name = settings.default_llm_model
     logger.info("HITL resume action=%s [conversation=%s]", body.action, conversation_id)
 
@@ -309,8 +407,10 @@ async def resume_conversation(
         db_uri = settings.psycopg_database_url
         try:
             async with AsyncPostgresSaver.from_conn_string(db_uri) as checkpointer:
-                await checkpointer.setup()
-                agent = await create_agent(checkpointer=checkpointer)
+                await _setup_checkpointer_once(checkpointer)
+                agent = await create_agent(
+                    checkpointer=checkpointer, disabled_tools=set(body.disabled_tools), model=model_name
+                )
                 config = {"configurable": {"thread_id": str(conversation_id)}}
 
                 # Resume the graph with the user's decision
@@ -331,6 +431,22 @@ async def resume_conversation(
             _active_resumes.discard(conversation_id)
 
     return EventSourceResponse(event_generator())
+
+
+@router.get("/models", response_model=list[AgentModelResponse])
+async def get_agent_models(
+    user: User = Depends(get_current_active_user),
+) -> list[AgentModelResponse]:
+    """List the chat models the user can pick in the composer."""
+    return [AgentModelResponse(**m) for m in available_models()]
+
+
+@router.get("/tools", response_model=list[AgentToolResponse])
+async def get_agent_tools(
+    user: User = Depends(get_current_active_user),
+) -> list[AgentToolResponse]:
+    """List every tool the agent can use (for the UI's tool toggle menu)."""
+    return [AgentToolResponse(**t) for t in await list_agent_tools()]
 
 
 @router.get("/conversations", response_model=list[ConversationResponse])

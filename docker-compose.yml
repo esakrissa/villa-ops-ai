@@ -29,6 +29,9 @@ services:
       - DATABASE_URL=postgresql+asyncpg://villa:villa_secret@postgres:5432/villa_ops
       - REDIS_URL=redis://redis:6379/0
       - MCP_SERVER_URL=http://mcp:8001/mcp
+      - BOOKING_MCP_URL=http://booking-mcp:8002/mcp
+      - AIRBNB_MCP_URL=http://airbnb-mcp:8003/mcp
+      - TRIPADVISOR_MCP_URL=http://tripadvisor-mcp:8004/mcp
     volumes:
       - ./backend:/app
     depends_on:
@@ -66,6 +69,51 @@ services:
       start_period: 10s
       retries: 3
     command: python -m app.mcp.server
+
+  # --- Market data MCP servers (mcp-servers/) — live Booking.com, Airbnb and Tripadvisor data ---
+  booking-mcp:
+    build:
+      context: ./mcp-servers/booking.com-mcp
+    container_name: villa-ops-booking-mcp
+    ports:
+      - "8002:8002"
+    environment:
+      - RAPIDAPI_KEY=${RAPIDAPI_KEY:-}
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./mcp-servers/booking.com-mcp/src:/app/src
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  airbnb-mcp:
+    build:
+      context: ./mcp-servers/airbnb-mcp
+    container_name: villa-ops-airbnb-mcp
+    ports:
+      - "8003:8003"
+    environment:
+      - AIRBNB_IGNORE_ROBOTS_TXT=${AIRBNB_IGNORE_ROBOTS_TXT:-false}
+      - REDIS_URL=redis://redis:6379/0
+    volumes:
+      - ./mcp-servers/airbnb-mcp/src:/app/src
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  tripadvisor-mcp:
+    build:
+      context: ./mcp-servers/tripadvisor-mcp
+    container_name: villa-ops-tripadvisor-mcp
+    ports:
+      - "8004:8004"
+    environment:
+      - TRIPADVISOR_API_KEY=${TRIPADVISOR_API_KEY:-}
+    volumes:
+      - ./mcp-servers/tripadvisor-mcp/src:/app/src
+    restart: unless-stopped
 
   postgres:
     image: postgres:16-alpine

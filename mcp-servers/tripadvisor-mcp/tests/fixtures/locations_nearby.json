@@ -1,0 +1,385 @@
+{
+  "data" : [ {
+    "location" : {
+      "id" : 33368633,
+      "geo_id" : 297701,
+      "geo" : "Ubud",
+      "names" : [ {
+        "language" : "en",
+        "value" : "Bali Hire Trip Driver",
+        "primary" : true
+      } ],
+      "status" : {
+        "value" : "OPEN"
+      },
+      "descriptions" : [ {
+        "language" : "en",
+        "value" : "\"Bali Hire Trip Driver: Your Reliable Travel Partner\" Explore Bali with our experienced drivers and well-maintained vehicles. Enjoy safe, comfortable, and memorable trips with our professional team. Book now and experience the best of Bali!"
+      } ],
+      "photos" : {
+        "total_count" : 7
+      },
+      "addresses" : [ {
+        "city" : "Ubud",
+        "country_name" : "Indonesia",
+        "country_code" : "ID",
+        "language" : "en",
+        "formatted" : "Ubud Indonesia"
+      } ],
+      "coordinates" : {
+        "latitude" : -8.5068570,
+        "longitude" : 115.2624780
+      },
+      "phone_numbers" : [ {
+        "value" : "+62 878-6278-9488",
+        "type" : "phone"
+      } ],
+      "urls" : {
+        "tripadvisor" : {
+          "main" : "https://www.tripadvisor.com/Attraction_Review-g297701-d33368633-Reviews-Bali_Hire_Trip_Driver-Ubud_Gianyar_Regency.html?m=70260",
+          "photos" : "https://www.tripadvisor.com/Attraction_Review-g297701-d33368633-Reviews-Bali_Hire_Trip_Driver-Ubud_Gianyar_Regency.html?m=70260#/media/",
+          "write_review" : "https://www.tripadvisor.com/UserReviewEdit-g297701-d33368633-Bali_Hire_Trip_Driver-Ubud_Gianyar_Regency.html?m=70260",
+          "questions_answers" : "https://www.tripadvisor.com/FAQ-g297701-d33368633-Bali_Hire_Trip_Driver.html?m=70260"
+        },
+        "official" : "https://balihiretripdriver.com"
+      },
+      "opening_hours" : {
+        "periods" : [ {
+          "day_of_week" : "Monday",
+          "opens" : "00:00",
+          "closes" : "23:59"
+        }, {
+          "day_of_week" : "Tuesday",
+          "opens" : "00:00",
+          "closes" : "23:59"
+        }, {
+          "day_of_week" : "Wednesday",
+          "opens" : "00:00",
+          "closes" : "23:59"
+        }, {
+          "day_of_week" : "Thursday",
+          "opens" : "00:00",
+          "closes" : "23:59"
+        }, {
+          "day_of_week" : "Friday",
+          "opens" : "00:00",
+          "closes" : "23:59"
+        }, {
+          "day_of_week" : "Saturday",
+          "opens" : "00:00",
+          "closes" : "23:59"
+        }, {
+          "day_of_week" : "Sunday",
+          "opens" : "00:00",
+          "closes" : "23:59"
+        } ],
+        "timezone" : "Asia/Makassar",
+        "formatted" : [ "Mo,Tu,We,Th,Fr,Sa,Su 00:00-23:59" ]
+      },
+      "traveler_ratings" : {
+        "overall" : {
+          "rating" : 5.0,
+          "count" : 5,
+          "icon_url" : "https://www.tripadvisor.com/img/cdsi/img2/ratings/traveler/5.0-70260-4.png"
+        },
+        "breakdowns" : [ {
+          "count" : 5,
+          "rating" : 5,
+          "rating_name" : "Excellent"
+        } ],
+        "language_counts" : [ {
+          "count" : 5,
+          "language" : "en"
+        } ],
+        "subratings" : [ ]
+      },
+      "official_email" : "balihiretripdriverinfo@gmail.com",
+      "recommended_visit_length" : 4
+    },
+    "bearing" : 333.1606321116443,
+    "distance_miles" : 0.003328867506531666,
+    "distance_kilometers" : 0.005357292948431697,
+    "photo" : {
+      "id" : 816782095,
+      "location_id" : 33368633,
+      "photo" : {
+        "key" : "photo-o/30/af/1b/0f/bali-hire-trip-driver.jpg",
+        "original_height" : 1080,
+        "original_width" : 1920,
+        "media_type" : "photo"
+      },
+      "publish_ts" : "2025-08-04T07:09:18.166Z",
+      "source" : {
+        "name" : "Management"
+      },
+      "caption" : "\"Bali Hire Trip Driver: Your Reliable Travel Partner\"  Explore Bali with our experienced drivers and well-maintained vehicles. Enjoy safe, comfortable, and memorable trips with our professional team. Book now and experience the best of Bali!",
+      "user" : {
+        "username" : "*********",
+        "geo_id" : 3175994,
+        "geo" : "Sidoarjo"
+      }
+    }
+  }, {
+    "location" : {
+      "id" : 13964849,
+      "geo_id" : 297701,
+      "geo" : "Ubud",
+      "names" : [ {
+        "language" : "en",
+        "value" : "Suan Bali Private Driver & Tour Guide",
+        "primary" : true
+      } ],
+      "status" : {
+        "value" : "OPEN"
+      },
+      "descriptions" : [ {
+        "language" : "en",
+        "value" : "Hello, I'm Nyoman Suandita. Your Bali Private Driver & Tour Guide. I am a professional private driver and tour guide from Bali. My team and I will offer you the best private tour service on the island."
+      } ],
+      "photos" : {
+        "total_count" : 49
+      },
+      "addresses" : [ {
+        "city" : "Ubud",
+        "country_name" : "Indonesia",
+        "country_code" : "ID",
+        "language" : "en",
+        "formatted" : "Ubud Indonesia"
+      } ],
+      "coordinates" : {
+        "latitude" : -8.5068540,
+        "longitude" : 115.2624800
+      },
+      "phone_numbers" : [ {
+        "value" : "+62 819-9955-8457",
+        "type" : "phone"
+      } ],
+      "urls" : {
+        "tripadvisor" : {
+          "main" : "https://www.tripadvisor.com/Attraction_Review-g297701-d13964849-Reviews-Suan_Bali_Private_Driver_&_Tour_Guide-Ubud_Gianyar_Regency.html?m=70260",
+          "photos" : "https://www.tripadvisor.com/Attraction_Review-g297701-d13964849-Reviews-Suan_Bali_Private_Driver_&_Tour_Guide-Ubud_Gianyar_Regency.html?m=70260#/media/",
+          "write_review" : "https://www.tripadvisor.com/UserReviewEdit-g297701-d13964849-Suan_Bali_Private_Driver_&_Tour_Guide-Ubud_Gianyar_Regency.html?m=70260",
+          "questions_answers" : "https://www.tripadvisor.com/FAQ-g297701-d13964849-Suan_Bali_Private_Driver_&_Tour_Guide.html?m=70260"
+        },
+        "official" : "http://suanbali.com/"
+      },
+      "opening_hours" : {
+        "periods" : [ {
+          "day_of_week" : "Monday",
+          "opens" : "00:00",
+          "closes" : "23:59"
+        }, {
+          "day_of_week" : "Tuesday",
+          "opens" : "00:00",
+          "closes" : "23:59"
+        }, {
+          "day_of_week" : "Wednesday",
+          "opens" : "00:00",
+          "closes" : "23:59"
+        }, {
+          "day_of_week" : "Thursday",
+          "opens" : "00:00",
+          "closes" : "23:59"
+        }, {
+          "day_of_week" : "Friday",
+          "opens" : "00:00",
+          "closes" : "23:59"
+        }, {
+          "day_of_week" : "Saturday",
+          "opens" : "00:00",
+          "closes" : "23:59"
+        }, {
+          "day_of_week" : "Sunday",
+          "opens" : "00:00",
+          "closes" : "23:59"
+        } ],
+        "timezone" : "Asia/Makassar",
+        "formatted" : [ "Mo,Tu,We,Th,Fr,Sa,Su 00:00-23:59" ]
+      },
+      "traveler_ratings" : {
+        "overall" : {
+          "rating" : 5.0,
+          "count" : 73,
+          "icon_url" : "https://www.tripadvisor.com/img/cdsi/img2/ratings/traveler/5.0-70260-4.png"
+        },
+        "breakdowns" : [ {
+          "count" : 73,
+          "rating" : 5,
+          "rating_name" : "Excellent"
+        } ],
+        "language_counts" : [ {
+          "count" : 3,
+          "language" : "de"
+        }, {
+          "count" : 66,
+          "language" : "en"
+        }, {
+          "count" : 2,
+          "language" : "fr"
+        }, {
+          "count" : 1,
+          "language" : "nl"
+        }, {
+          "count" : 1,
+          "language" : "pt"
+        } ],
+        "subratings" : [ ]
+      },
+      "official_email" : "tour@suanbali.com",
+      "recommended_visit_length" : 4
+    },
+    "bearing" : 336.7323333335426,
+    "distance_miles" : 0.003459351231274904,
+    "distance_kilometers" : 0.00556728614794488,
+    "photo" : {
+      "id" : 310714667,
+      "location_id" : 13964849,
+      "photo" : {
+        "key" : "photo-o/12/85/21/2b/getlstd-property-photo.jpg",
+        "original_height" : 1280,
+        "original_width" : 767,
+        "media_type" : "photo"
+      },
+      "publish_ts" : "2018-04-02T21:28:55.078Z",
+      "source" : {
+        "name" : "Management"
+      },
+      "caption" : "getlstd_property_photo",
+      "user" : {
+        "username" : "*********",
+        "geo_id" : 297734,
+        "geo" : "Mataram"
+      }
+    }
+  }, {
+    "location" : {
+      "id" : 25215374,
+      "geo_id" : 297701,
+      "geo" : "Ubud",
+      "names" : [ {
+        "language" : "en",
+        "value" : "Bali Wiku Tours",
+        "primary" : true
+      } ],
+      "status" : {
+        "value" : "OPEN"
+      },
+      "descriptions" : [ {
+        "language" : "en",
+        "value" : "Private Tour Driver in Bali Provide: Airport transfer Hotel transfer Half day tours Full day tours Sightseeing All Activities In Bali Nusa Penida Fast boat ticket"
+      } ],
+      "photos" : {
+        "total_count" : 28
+      },
+      "addresses" : [ {
+        "street_address" : "Ubud, Bali - Indonesia",
+        "city" : "Ubud",
+        "country_name" : "Indonesia",
+        "country_code" : "ID",
+        "postal_code" : "80571",
+        "language" : "en",
+        "formatted" : "Ubud, Bali - Indonesia, Ubud 80571 Indonesia"
+      } ],
+      "coordinates" : {
+        "latitude" : -8.5068540,
+        "longitude" : 115.2624780
+      },
+      "phone_numbers" : [ {
+        "value" : "+62 812-3767-4240",
+        "type" : "phone"
+      } ],
+      "urls" : {
+        "tripadvisor" : {
+          "main" : "https://www.tripadvisor.com/Attraction_Review-g297701-d25215374-Reviews-Bali_Wiku_Tours-Ubud_Gianyar_Regency.html?m=70260",
+          "photos" : "https://www.tripadvisor.com/Attraction_Review-g297701-d25215374-Reviews-Bali_Wiku_Tours-Ubud_Gianyar_Regency.html?m=70260#/media/",
+          "write_review" : "https://www.tripadvisor.com/UserReviewEdit-g297701-d25215374-Bali_Wiku_Tours-Ubud_Gianyar_Regency.html?m=70260",
+          "questions_answers" : "https://www.tripadvisor.com/FAQ-g297701-d25215374-Bali_Wiku_Tours.html?m=70260"
+        },
+        "official" : "https://baliwikutours.com/"
+      },
+      "opening_hours" : {
+        "periods" : [ {
+          "day_of_week" : "Monday",
+          "opens" : "00:00",
+          "closes" : "23:59"
+        }, {
+          "day_of_week" : "Tuesday",
+          "opens" : "00:00",
+          "closes" : "23:59"
+        }, {
+          "day_of_week" : "Wednesday",
+          "opens" : "00:00",
+          "closes" : "23:59"
+        }, {
+          "day_of_week" : "Thursday",
+          "opens" : "00:00",
+          "closes" : "23:59"
+        }, {
+          "day_of_week" : "Friday",
+          "opens" : "00:00",
+          "closes" : "23:59"
+        }, {
+          "day_of_week" : "Saturday",
+          "opens" : "00:00",
+          "closes" : "23:59"
+        }, {
+          "day_of_week" : "Sunday",
+          "opens" : "00:00",
+          "closes" : "23:59"
+        } ],
+        "timezone" : "Asia/Makassar",
+        "formatted" : [ "Mo,Tu,We,Th,Fr,Sa,Su 00:00-23:59" ]
+      },
+      "traveler_ratings" : {
+        "overall" : {
+          "rating" : 5.0,
+          "count" : 26,
+          "icon_url" : "https://www.tripadvisor.com/img/cdsi/img2/ratings/traveler/5.0-70260-4.png"
+        },
+        "breakdowns" : [ {
+          "count" : 26,
+          "rating" : 5,
+          "rating_name" : "Excellent"
+        } ],
+        "language_counts" : [ {
+          "count" : 25,
+          "language" : "en"
+        }, {
+          "count" : 1,
+          "language" : "id"
+        } ],
+        "subratings" : [ ]
+      },
+      "official_email" : "baliwikutours@gmail.com",
+      "recommended_visit_length" : 4
+    },
+    "bearing" : 334.6858913546036,
+    "distance_miles" : 0.003515954890302558,
+    "distance_kilometers" : 0.0056583809069790806,
+    "photo" : {
+      "id" : 719053226,
+      "location_id" : 25215374,
+      "photo" : {
+        "key" : "photo-o/2a/db/e1/aa/caption.jpg",
+        "original_height" : 1600,
+        "original_width" : 1200,
+        "media_type" : "photo"
+      },
+      "publish_ts" : "2023-11-21T07:29:06.535Z",
+      "source" : {
+        "name" : "Traveler"
+      },
+      "user" : {
+        "username" : "*********",
+        "geo_id" : 187791,
+        "geo" : "Rome"
+      }
+    }
+  } ],
+  "pagination" : {
+    "page" : 1,
+    "size" : 3,
+    "total_pages" : 498,
+    "total_elements" : 1493
+  }
+}
