@@ -9,6 +9,7 @@ import { LogoMark } from "@/components/ui/Logo";
 import { ToolSteps } from "./ToolCallCard";
 import { ConfirmationCard } from "./ConfirmationCard";
 import { ListingResults } from "./ListingCards";
+import { ItineraryCard, latestItinerary } from "./ItineraryCard";
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -136,6 +137,15 @@ export function MessageBubble({ message, showAvatar = true, onResumeConversation
         )}
 
         <ListingResults toolResults={message.toolResults} />
+
+        {(() => {
+          const plan = latestItinerary(message.toolResults);
+          return plan ? (
+            <div className="mb-3">
+              <ItineraryCard plan={plan} />
+            </div>
+          ) : null;
+        })()}
 
         {hasConfirmation && (
           <div className="mb-3">

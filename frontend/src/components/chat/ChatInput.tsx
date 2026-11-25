@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import { ArrowUpIcon, StopIcon } from "@/components/ui/icons";
+import { ArrowUpIcon, LayersIcon, StopIcon, WaveIcon } from "@/components/ui/icons";
 import { ModelMenu } from "./ModelMenu";
 import { ToolsMenu } from "./ToolsMenu";
 
@@ -12,6 +12,11 @@ interface ChatInputProps {
   onStop?: () => void;
   autoFocus?: boolean;
   placeholder?: string;
+  /** Start Villa voice mode; the wave button is hidden when undefined */
+  onVoice?: () => void;
+  /** Prompt templates panel toggle; hidden when undefined */
+  templatesOpen?: boolean;
+  onToggleTemplates?: () => void;
 }
 
 /** Floating composer card — textarea, model chip, send/stop button. */
@@ -22,6 +27,9 @@ export function ChatInput({
   onStop,
   autoFocus,
   placeholder = "Ask about bookings, guests, properties…",
+  onVoice,
+  templatesOpen,
+  onToggleTemplates,
 }: ChatInputProps) {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -68,7 +76,35 @@ export function ChatInput({
           <div className="flex items-center gap-1.5">
             <ModelMenu />
             <ToolsMenu />
+            {onToggleTemplates && (
+              <button
+                type="button"
+                onClick={onToggleTemplates}
+                aria-pressed={!!templatesOpen}
+                title={templatesOpen ? "Hide prompt templates" : "Show prompt templates"}
+                className={`flex h-8 items-center gap-1.5 rounded-full px-2.5 text-[13px] transition-colors ${
+                  templatesOpen ? "bg-sand text-ink" : "text-gray-500 hover:bg-gray-100 hover:text-ink"
+                }`}
+              >
+                <LayersIcon className="h-4 w-4" />
+                <span className="hidden sm:inline">Templates</span>
+              </button>
+            )}
           </div>
+          <div className="flex items-center gap-1.5">
+          {onVoice && (
+            <button
+              type="button"
+              onClick={onVoice}
+              disabled={isLoading}
+              title="Talk to Villa (voice mode)"
+              aria-label="Start voice mode"
+              className="group flex h-9 items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 text-ink transition-[border-color,background,transform] hover:border-ink hover:bg-ink hover:text-lime active:scale-95 disabled:opacity-40"
+            >
+              <WaveIcon className="h-[18px] w-[18px]" />
+              <span className="hidden text-[13px] font-medium sm:inline">Villa</span>
+            </button>
+          )}
           {isLoading && onStop ? (
             <button
               type="button"
@@ -89,6 +125,7 @@ export function ChatInput({
               <ArrowUpIcon className="h-4 w-4" />
             </button>
           )}
+          </div>
         </div>
       </div>
       <p className="mt-2 text-center text-[11.5px] text-gray-400">

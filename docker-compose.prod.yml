@@ -69,6 +69,27 @@ services:
     ports: !reset []
     volumes: !reset []
 
+  # Villa, the realtime voice agent (voice-agent/). A LiveKit worker: it only dials out
+  # (LiveKit Cloud, OpenRouter, ElevenLabs) and reaches the MCP servers and backend on this network.
+  # Prod-only so a plain local `docker compose up` stays light; locally: `uv run python agent.py dev`.
+  voice-agent:
+    build:
+      context: ./voice-agent
+    container_name: villa-ops-voice-agent
+    env_file:
+      - .env
+    environment:
+      - VOICE_BACKEND_URL=http://backend:8000
+      - MCP_SERVER_URL=http://mcp:8001/mcp
+      - BOOKING_MCP_URL=http://booking-mcp:8002/mcp
+      - AIRBNB_MCP_URL=http://airbnb-mcp:8003/mcp
+      - TRIPADVISOR_MCP_URL=http://tripadvisor-mcp:8004/mcp
+      - VOICE_IDLE_PROCESSES=1
+    depends_on:
+      - backend
+      - mcp
+    restart: unless-stopped
+
   postgres:
     ports: !reset []
 

@@ -95,6 +95,21 @@ class Settings(BaseSettings):
     kb_chunk_tokens: int = 350
     kb_chunk_overlap_tokens: int = 50
 
+    # Voice mode ("Villa"): LiveKit Cloud room + agent dispatch. Empty keys = voice mode off.
+    livekit_url: str = ""
+    livekit_api_key: str = ""
+    livekit_api_secret: str = ""
+    voice_agent_name: str = "villa"
+    # Shared secret the voice agent worker sends to the internal transcript endpoints
+    voice_agent_secret: str = ""
+    # OpenRouter model ids (no "openrouter/" prefix) offered for voice; first entry is the default
+    voice_models: list[str] = [
+        "anthropic/claude-haiku-5.5",
+        "google/gemini-3.1-flash-lite",
+        "openai/gpt-6-sol",
+        "openai/gpt-6-luna",
+    ]
+
     # Frontend
     frontend_url: str = "http://localhost:3000"
     cors_origins: list[str] = [

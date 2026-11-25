@@ -23,6 +23,8 @@ An AI operations agent for villa and hotel property managers in Bali. Managers c
 ## Key Features
 
 - **Agent that acts, not just chats** — a LangGraph agent with 26 MCP tools across 5 servers (VillaOps, Booking.com, Airbnb, Tripadvisor, Exa web search), streaming over SSE with live tool steps you can expand to see arguments and results
+- **Villa, a realtime voice concierge** — press the voice-wave button and talk: LiveKit (WebRTC) + AssemblyAI STT + Claude Haiku 5.5 + ElevenLabs Flash v2.5, with the same MCP tools as the text agent (knowledge base included, `user_id` pinned server-side). Plans a week in Ubud with Tripadvisor/Booking.com searches and puts a day-by-day itinerary card on screen; every call is saved as a chat conversation. Details, latency and cost: [`docs/voice-agent.md`](docs/voice-agent.md)
+- **Prompt templates** — a categorised template library (operations, trip planning, guests, market, policies) in the chat composer and in voice mode, shown or hidden with one click
 - **Knowledge base (RAG) with a live pipeline** — upload PDF/DOCX/Markdown and watch it extract → chunk (heading-aware, with overlap) → embed and index in Pinecone → verify, chunk by chunk. The agent searches it with `kb_search`, reranks with `bge-reranker-v2-m3`, and cites `(Document, Section)`. Delete a document and it's gone from answers immediately
 - **Human-in-the-loop** — destructive tools (delete guest/property) pause the graph with `interrupt()` and show an approval card; nothing changes until you confirm
 - **Fast, resilient model routing** — all models via OpenRouter (default GPT-6 Luna; Claude Haiku 5.5, Gemini Flash-Lite and five free models in the picker), an 8-second first-token deadline with automatic failover, and latency-sorted provider routing. Typical tool-using reply: ~3–6 s
@@ -191,7 +193,9 @@ The agent picks the right MCP tools, runs independent ones in parallel, streams 
      │  backend (FastAPI + LangGraph)   frontend (Next.js prod)      │
      │  mcp (VillaOps tools)   booking-mcp  airbnb-mcp  tripadvisor  │
      │  postgres   redis              (docker compose, one box)      │
+     │  voice-agent (Villa, LiveKit worker — dials out only)         │
      └───────────────────────────────────────────────────────────────┘
+        voice-agent ⇄ LiveKit Cloud (WebRTC) ⇄ browser; OpenRouter, ElevenLabs
         ./scripts/demo.sh start | stop | status | deploy | destroy
         Auto-stop after 2 h · pay only while it runs
 ```
@@ -503,7 +507,8 @@ villa-ops-ai/
 │   │   │   └── dashboard/       # Bookings, analytics, properties, knowledge, billing
 │   │   ├── components/
 │   │   │   ├── auth/            # OAuthButtons, LoginForm, RegisterForm
-│   │   │   ├── chat/            # ChatWindow, MessageBubble, ToolCallCard
+│   │   │   ├── chat/            # ChatWindow, MessageBubble, ToolCallCard, PromptTemplates, ItineraryCard
+│   │   │   ├── voice/           # VoiceMode (Villa call UI), VoiceOrb
 │   │   │   ├── dashboard/       # BookingTable, OccupancyChart, PropertyCard
 │   │   │   ├── billing/         # PricingCard, UsageMeter, PlanBadge
 │   │   │   ├── knowledge/       # DropZone, PipelineView, SearchPanel
@@ -511,6 +516,11 @@ villa-ops-ai/
 │   │   └── lib/                 # API client, auth helpers, hooks
 │   ├── Dockerfile
 │   └── package.json
+├── voice-agent/                 # Villa: LiveKit Agents worker (STT → LLM + MCP tools → ElevenLabs)
+│   ├── agent.py                 # Session, transcript hooks, greeting
+│   ├── villa/                   # mcp_tools (user_id pinned), itinerary, models, prompt, backend
+│   ├── test_caller.py           # Typed end-to-end test call through the backend
+│   └── tests/
 ├── .aws/                        # Retired ECS infrastructure (reference)
 │   ├── backend-task-def.json
 │   ├── frontend-task-def.json
@@ -577,6 +587,11 @@ All variables are configured via `.env` (see [`.env.example`](.env.example) for 
 | `LANGSMITH_TRACING` / `LANGSMITH_API_KEY` / `LANGSMITH_PROJECT` | No | LangSmith tracing for every LangGraph run |
 | **Web Search** | | |
 | `EXA_API_KEY` | No | Exa API key for the `web_search` tool |
+| **Voice mode (Villa)** | | |
+| `LIVEKIT_URL` / `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` | No* | LiveKit Cloud project (*required for voice mode; empty = the voice button is hidden) |
+| `VOICE_AGENT_SECRET` | No* | Shared secret between the voice agent and the backend's internal transcript endpoints |
+| `ELEVEN_API_KEY` / `ELEVEN_VOICE_ID` / `ELEVEN_MODEL` | No | ElevenLabs voice (default `eleven_flash_v2_5`); without a key Villa speaks with LiveKit Inference voices |
+| `VOICE_MODELS` | No | JSON list of OpenRouter models offered for voice, first = default (Claude Haiku 5.5) |
 | **Services** | | |
 | `MCP_SERVER_URL` | Yes | MCP server URL (default: `http://localhost:8001/mcp`) |
 | `FRONTEND_URL` | Yes | Frontend URL for CORS and OAuth redirects |

@@ -155,6 +155,32 @@ jobs:
       - name: Run tests
         run: pytest -q
 
+  voice-agent:
+    name: Voice Agent (Villa)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: voice-agent/
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.6.10"
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Run ruff
+        run: uv run ruff check --output-format=github . && uv run ruff format --check .
+
+      # Unit tests only (no LiveKit, LLM or network)
+      - name: Run tests
+        run: uv run pytest -q
+
   build:
     name: Build Docker Images
     runs-on: ubuntu-latest

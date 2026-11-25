@@ -2,6 +2,12 @@
 # {$DOMAIN} = villaops.esakrissa.com → automatic HTTPS via Let's Encrypt.
 # DOMAIN=":80" serves plain HTTP on the IP (before DNS points here).
 {$DOMAIN} {
+	# Voice agent → backend transcript endpoints stay on the compose network
+	@internal path /api/v1/voice/internal/*
+	handle @internal {
+		respond 404
+	}
+
 	# Backend: API (incl. SSE chat + knowledge streams), health, API docs
 	@backend path /api/* /health /docs /docs/* /redoc /openapi.json
 	handle @backend {

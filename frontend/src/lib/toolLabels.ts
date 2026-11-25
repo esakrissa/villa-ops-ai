@@ -25,6 +25,7 @@ const LABELS: Record<string, { running: string; done: string }> = {
   tripadvisor_get_location_details: { running: "Opening Tripadvisor place", done: "Opened Tripadvisor place" },
   web_search_exa: { running: "Searching the web", done: "Searched the web" },
   web_fetch_exa: { running: "Reading web page", done: "Read web page" },
+  show_itinerary: { running: "Writing itinerary", done: "Wrote itinerary" },
 };
 
 export function humanizeToolName(name: string): string {

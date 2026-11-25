@@ -87,3 +87,25 @@ export const UploadIcon = (p: IconProps) => (
 export const DocIcon = (p: IconProps) => (
   <Icon {...p} d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
 );
+/** Voice-wave bars — the voice mode toggle. */
+export const WaveIcon = ({ className = "h-[18px] w-[18px]" }: IconProps) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true">
+    <path d="M4 10v4M8 6.5v11M12 3.5v17M16 7.5v9M20 10.5v3" />
+  </svg>
+);
+export const MicIcon = (p: IconProps) => (
+  <Icon {...p} strokeWidth={1.8} d="M12 18.75a6 6 0 0 0 6-6v-1.5m-6 7.5a6 6 0 0 1-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 0 1-3-3V4.5a3 3 0 1 1 6 0v8.25a3 3 0 0 1-3 3Z" />
+);
+export const MicOffIcon = ({ className = "h-[18px] w-[18px]" }: IconProps) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M12 18.75a6 6 0 0 0 6-6v-1.5m-12 0v1.5a6 6 0 0 0 6 6m0 0v3.75m-3.75 0h7.5M15 9.4V4.5a3 3 0 0 0-5.7-1.3M9 9v3.75a3 3 0 0 0 4.9 2.3M3 3l18 18" />
+  </svg>
+);
+export const PhoneOffIcon = ({ className = "h-[18px] w-[18px]" }: IconProps) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <path d="M12 9c-1.9 0-3.7.3-5.4.9v3.1c0 .4-.2.7-.6.9-.9.4-1.7 1-2.4 1.6-.2.2-.4.3-.7.3s-.5-.1-.7-.3L.3 13.6c-.2-.2-.3-.4-.3-.7s.1-.5.3-.7C3.3 9.4 7.5 7.7 12 7.7s8.7 1.7 11.7 4.5c.2.2.3.4.3.7s-.1.5-.3.7l-1.9 1.9c-.2.2-.4.3-.7.3s-.5-.1-.7-.3c-.7-.6-1.5-1.2-2.4-1.6-.3-.2-.6-.5-.6-.9V9.9C15.7 9.3 13.9 9 12 9Z" />
+  </svg>
+);
+export const LayersIcon = (p: IconProps) => (
+  <Icon {...p} d="M6.429 9.75 2.25 12l4.179 2.25m0-4.5 5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25m0 0L21.75 12l-4.179 2.25m0 0 4.179 2.25L12 21.75 2.25 16.5l4.179-2.25m11.142 0-5.571 3-5.571-3" />
+);
