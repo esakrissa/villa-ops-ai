@@ -1,0 +1,30 @@
+[project]
+name = "villa-voice-agent"
+version = "0.1.0"
+description = "Villa: the VillaOps AI realtime voice agent (LiveKit Agents, ElevenLabs voice, VillaOps MCP tools)"
+requires-python = ">=3.12"
+dependencies = [
+    "livekit-agents[mcp]~=1.8.13",
+    "livekit-plugins-elevenlabs~=1.8.13",
+    "livekit-plugins-openai~=1.8.13",
+    "livekit-plugins-ai-coustics~=0.3.4",
+    "httpx>=0.28",
+    "python-dotenv~=1.1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest~=8.4",
+    "pytest-asyncio~=1.2",
+    "ruff~=0.14",
+]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "ASYNC"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["."]

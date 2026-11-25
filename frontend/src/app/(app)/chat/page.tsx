@@ -4,19 +4,15 @@ import { useState, useCallback, useEffect, useRef, useSyncExternalStore } from "
 import { ChatWindow } from "@/components/chat/ChatWindow";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ConversationSidebar } from "@/components/chat/ConversationSidebar";
+import { PromptTemplates } from "@/components/chat/PromptTemplates";
+import { VoiceMode } from "@/components/voice/VoiceMode";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
-import { ChatsIcon, CloseIcon, PenIcon } from "@/components/ui/icons";
+import { ChatsIcon, CloseIcon, PenIcon, WaveIcon } from "@/components/ui/icons";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useChat } from "@/lib/hooks/useChat";
 import { useConversations } from "@/lib/hooks/useConversations";
 import { useMediaQuery, usePersistentState } from "@/lib/hooks/usePersistentState";
-
-const suggestions = [
-  { title: "Today's check-ins", prompt: "Show me today's check-ins" },
-  { title: "Occupancy this month", prompt: "What's the occupancy rate this month?" },
-  { title: "Find a guest", prompt: "Search for guest Sarah Chen" },
-  { title: "Upcoming arrivals", prompt: "Which guests are arriving in the next 7 days?" },
-];
+import { useVoiceConfig } from "@/lib/hooks/useVoiceSession";
 
 function greeting(): string {
   const hour = new Date().getHours();
@@ -63,6 +59,27 @@ export default function ChatPage() {
   const [dismissedError, setDismissedError] = useState<string | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const prevConvIdRef = useRef<string | null>(null);
+  const [templatesOpen, setTemplatesOpen] = usePersistentState("villaops.templates.open", true);
+  const voiceConfig = useVoiceConfig();
+  const [voiceOpen, setVoiceOpen] = useState(false);
+  const voiceAvailable = !!voiceConfig?.enabled;
+  const openVoice = useCallback(() => {
+    stopGeneration();
+    setVoiceOpen(true);
+  }, [stopGeneration]);
+  const toggleTemplates = useCallback(() => setTemplatesOpen(!templatesOpen), [setTemplatesOpen, templatesOpen]);
+
+  // The call is saved as a conversation: show it as a chat when the call ends
+  const handleVoiceExit = useCallback(
+    (convId: string | null, hadTurns: boolean) => {
+      setVoiceOpen(false);
+      if (convId && (hadTurns || convId === conversationId)) loadConversation(convId);
+      fetchConversations();
+      // The LLM title arrives a few seconds after the first question
+      setTimeout(fetchConversations, 4000);
+    },
+    [conversationId, fetchConversations, loadConversation],
+  );
 
   // Refresh history when a new conversation is created
   useEffect(() => {
@@ -74,9 +91,10 @@ export default function ChatPage() {
 
   const handleSelectConversation = useCallback(
     (id: string) => {
+      if (voiceOpen) return;
       if (id !== conversationId) loadConversation(id);
     },
-    [conversationId, loadConversation],
+    [conversationId, loadConversation, voiceOpen],
   );
 
   // Refresh history when the LLM-generated title arrives
@@ -149,7 +167,12 @@ export default function ChatPage() {
             </button>
           )}
           <p className="ml-2 min-w-0 truncate text-[14px] text-gray-600">
-            {isEmpty ? (
+            {voiceOpen ? (
+              <span className="inline-flex items-center gap-1.5 text-ink">
+                <WaveIcon className="h-4 w-4" /> Voice call with Villa
+                {!isEmpty && title ? <span className="text-gray-400">· {title}</span> : null}
+              </span>
+            ) : isEmpty ? (
               <span className="eyebrow text-gray-400">New conversation</span>
             ) : (
               title || "Conversation"
@@ -166,8 +189,10 @@ export default function ChatPage() {
           </div>
         )}
 
-        {isEmpty ? (
-          /* Welcome: greeting + centred composer + suggestions */
+        {voiceOpen ? (
+          <VoiceMode conversationId={isEmpty ? null : conversationId} onExit={handleVoiceExit} />
+        ) : isEmpty ? (
+          /* Welcome: greeting + centred composer + prompt templates */
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4">
             <div className="mx-auto my-auto w-full max-w-3xl py-10">
               <p className="eyebrow text-center text-gray-500">VillaOps agent</p>
@@ -178,21 +203,30 @@ export default function ChatPage() {
                 <em>What needs doing?</em>
               </h1>
               <div className="mt-10">
-                <ChatInput onSend={sendMessage} isLoading={isLoading} onStop={stopGeneration} autoFocus />
+                <ChatInput
+                  onSend={sendMessage}
+                  isLoading={isLoading}
+                  onStop={stopGeneration}
+                  autoFocus
+                  onVoice={voiceAvailable ? openVoice : undefined}
+                  templatesOpen={templatesOpen}
+                  onToggleTemplates={toggleTemplates}
+                />
               </div>
-              <div className="mx-auto mt-6 grid max-w-3xl grid-cols-1 gap-2 sm:grid-cols-2">
-                {suggestions.map((s) => (
-                  <button
-                    key={s.prompt}
-                    type="button"
-                    onClick={() => sendMessage(s.prompt)}
-                    className="group rounded-2xl border border-gray-200 bg-white/60 px-4 py-3 text-left transition-colors hover:border-gray-300 hover:bg-white"
-                  >
-                    <span className="block text-[14px] font-medium text-ink">{s.title}</span>
-                    <span className="block truncate text-[13px] text-gray-500">{s.prompt}</span>
+              {voiceAvailable && (
+                <p className="mt-3 text-center text-[13px] text-gray-500">
+                  Prefer to talk?{" "}
+                  <button type="button" onClick={openVoice} className="font-medium text-ink underline decoration-gray-300 underline-offset-2 hover:decoration-ink">
+                    Call Villa
                   </button>
-                ))}
-              </div>
+                  , the voice concierge: trip plans for Ubud, your bookings and policies, hands-free.
+                </p>
+              )}
+              {templatesOpen && (
+                <div className="mx-auto mt-6 max-w-3xl">
+                  <PromptTemplates variant="text" onPick={sendMessage} />
+                </div>
+              )}
             </div>
           </div>
         ) : (
@@ -202,7 +236,20 @@ export default function ChatPage() {
             </div>
             <div className="relative shrink-0 px-4 pb-4">
               <div className="pointer-events-none absolute inset-x-0 -top-8 h-8 bg-gradient-to-t from-cream to-transparent" />
-              <ChatInput onSend={sendMessage} isLoading={isLoading} onStop={stopGeneration} placeholder="Reply to VillaOps…" />
+              {templatesOpen && (
+                <div className="mx-auto mb-2 w-full max-w-3xl rounded-2xl border border-gray-200 bg-white/80 px-3 pb-3 pt-2 backdrop-blur">
+                  <PromptTemplates variant="text" compact disabled={isLoading} onPick={sendMessage} />
+                </div>
+              )}
+              <ChatInput
+                onSend={sendMessage}
+                isLoading={isLoading}
+                onStop={stopGeneration}
+                placeholder="Reply to VillaOps…"
+                onVoice={voiceAvailable ? openVoice : undefined}
+                templatesOpen={templatesOpen}
+                onToggleTemplates={toggleTemplates}
+              />
             </div>
           </>
         )}

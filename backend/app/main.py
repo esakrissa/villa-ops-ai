@@ -16,6 +16,7 @@ from app.api.v1.chat import router as chat_router
 from app.api.v1.guests import router as guests_router
 from app.api.v1.knowledge import router as knowledge_router
 from app.api.v1.properties import router as properties_router
+from app.api.v1.voice import router as voice_router
 from app.api.v1.webhooks import router as webhooks_router
 from app.config import settings
 
@@ -84,6 +85,7 @@ app.include_router(guests_router)
 app.include_router(analytics_router)
 app.include_router(chat_router)
 app.include_router(knowledge_router)
+app.include_router(voice_router)
 app.include_router(webhooks_router)
 
 

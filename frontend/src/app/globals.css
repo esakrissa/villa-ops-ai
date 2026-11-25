@@ -331,6 +331,14 @@
     animation: var(--animate-shimmer);
   }
 
+  /* Horizontal chip rows that scroll without a visible bar */
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
   .live-dot {
     display: inline-block;
     height: 7px;
