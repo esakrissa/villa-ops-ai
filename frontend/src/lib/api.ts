@@ -14,11 +14,28 @@ export class ApiError extends Error {
   }
 }
 
-let isRefreshing = false;
+// One token refresh shared by every request that got a 401 at the same time. With a boolean flag
+// only the first request waited for the refresh; the others failed (e.g. the voice config, which
+// hid the Villa button until a reload after the access token expired).
+let refreshing: Promise<void> | null = null;
+
+function refreshOnce(): Promise<void> {
+  if (!refreshing) {
+    refreshing = (async () => {
+      // Lazy import to avoid circular dependency (auth.ts imports api.ts)
+      const { refreshTokens } = await import("./auth");
+      await refreshTokens();
+    })().finally(() => {
+      refreshing = null;
+    });
+  }
+  return refreshing;
+}
 
 export async function apiFetch<T>(
   path: string,
   options: RequestInit = {},
+  retried = false,
 ): Promise<T> {
   const token =
     typeof window !== "undefined"
@@ -42,19 +59,13 @@ export async function apiFetch<T>(
   if (!res.ok) {
     if (
       res.status === 401 &&
-      !isRefreshing &&
+      !retried &&
       path !== "/api/v1/auth/login" &&
       path !== "/api/v1/auth/refresh"
     ) {
-      isRefreshing = true;
       try {
-        // Lazy import to avoid circular dependency (auth.ts imports api.ts)
-        const { refreshTokens } = await import("./auth");
-        await refreshTokens();
-        isRefreshing = false;
-        return apiFetch<T>(path, options);
+        await refreshOnce();
       } catch {
-        isRefreshing = false;
         const { clearTokens } = await import("./auth");
         clearTokens();
         if (typeof window !== "undefined") {
@@ -62,6 +73,7 @@ export async function apiFetch<T>(
         }
         throw new ApiError(401, { detail: "Session expired" });
       }
+      return apiFetch<T>(path, options, true);
     }
 
     const data = await res.json().catch(() => ({}));
