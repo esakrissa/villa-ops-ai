@@ -54,9 +54,10 @@ function toBlocks(items: VoiceItem[], tools: Record<string, VoiceToolEvent>): Bl
   return blocks;
 }
 
-function stateLabel(state: AgentState, status: string, muted: boolean): string {
+function stateLabel(state: AgentState, status: string, muted: boolean, micStarting = false): string {
   if (status === "connecting") return "Connecting to Villa…";
   if (status !== "connected") return "Call ended";
+  if (muted && micStarting && state !== "speaking") return "Turning on your microphone…";
   switch (state) {
     case "initializing":
       return "Villa is joining…";
@@ -171,7 +172,7 @@ export function VoiceMode({ conversationId, onExit }: VoiceModeProps) {
         <VoiceOrb agentState={v.agentState} connected={connected} getLevels={v.getLevels} size={64} />
         <div className="min-w-0 flex-1">
           <p className={`text-[13.5px] font-medium ${v.agentState === "thinking" && connected ? "shimmer-text" : "text-ink"}`}>
-            Villa · {disabled ? "voice mode is off" : stateLabel(v.agentState, v.status, v.muted)}
+            Villa · {disabled ? "voice mode is off" : stateLabel(v.agentState, v.status, v.muted, v.micStarting)}
             <span className="ml-2 font-mono text-[12px] font-normal tabular-nums text-gray-400">{elapsed}</span>
           </p>
           <p className="truncate text-[13px] text-gray-500">{caption?.text ?? (connected ? "Say hello, or pick a prompt below." : "")}</p>
@@ -220,7 +221,7 @@ export function VoiceMode({ conversationId, onExit }: VoiceModeProps) {
               </div>
 
               <p className={`text-center text-[14px] font-medium ${v.agentState === "thinking" && connected ? "shimmer-text" : "text-ink"}`}>
-                {disabled ? "Voice mode is off on this server" : stateLabel(v.agentState, v.status, v.muted)}
+                {disabled ? "Voice mode is off on this server" : stateLabel(v.agentState, v.status, v.muted, v.micStarting)}
               </p>
               <p className="mx-auto mt-1 line-clamp-3 min-h-[3.9em] max-w-sm text-center text-[13.5px] leading-[1.3] text-gray-500">
                 {caption?.text ?? (connected ? "Say hello, or pick a prompt below." : "")}

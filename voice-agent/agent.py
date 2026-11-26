@@ -21,9 +21,6 @@ from livekit.agents import (
     Agent,
     AgentServer,
     AgentSession,
-    AudioConfig,
-    BackgroundAudioPlayer,
-    BuiltinAudioClip,
     ErrorEvent,
     TurnHandlingOptions,
     inference,
@@ -51,8 +48,6 @@ logger = logging.getLogger("villa")
 # Tool calls as they happen, for the page (frontend VoiceMode reads this text-stream topic)
 TOOL_EVENTS_TOPIC = "villa.tool"
 APOLOGY = "Sorry, I lost my train of thought there. Could you say that again?"
-# Background tasks outlive the entrypoint (it returns once the session runs); keep references
-_tasks: set[asyncio.Task] = set()
 
 
 def mcp_sources() -> list[tuple[str, str]]:
@@ -222,28 +217,6 @@ async def entrypoint(ctx: agents.JobContext) -> None:
         ),
     )
     session.say(greeting(first_name(user_name), continuing=bool(history)))
-
-    # Soft keyboard sounds while Villa thinks (an itinerary takes ~7 s to write), so a long turn
-    # doesn't sound like a dropped call. Started after the greeting and never awaited by it:
-    # publishing the extra track can take seconds on a slow connection.
-    if settings.thinking_sound:
-        background = BackgroundAudioPlayer(
-            thinking_sound=[
-                AudioConfig(BuiltinAudioClip.KEYBOARD_TYPING, volume=0.35),
-                AudioConfig(BuiltinAudioClip.KEYBOARD_TYPING2, volume=0.3),
-            ],
-        )
-
-        async def start_background() -> None:
-            try:
-                await asyncio.wait_for(background.start(room=ctx.room, agent_session=session), timeout=15)
-            except Exception as e:
-                logger.warning("thinking sound unavailable: %r", e)
-
-        ctx.add_shutdown_callback(background.aclose)
-        bg_task = asyncio.create_task(start_background(), name="villa-background-audio")
-        _tasks.add(bg_task)
-        bg_task.add_done_callback(_tasks.discard)
 
 
 if __name__ == "__main__":

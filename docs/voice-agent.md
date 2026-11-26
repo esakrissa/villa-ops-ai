@@ -50,6 +50,10 @@ FastAPI backend ◀── X-Voice-Agent-Key: transcript turns, history ───
   The LLM attempt timeout is 15 s because the OpenAI plugin only hands over a tool call once its
   arguments are complete, and a 7-day itinerary call is ~1.4k tokens (~7 s on Haiku 5.5); at 6 s
   the itinerary was cut off silently.
+- **No sound effects.** Villa's voice is the only audio; the orb and the "Thinking…" label show
+  that she's working. Muting stops the microphone track itself (`stopMicTrackOnMute`), and the mute
+  button mirrors the track's real state (Safari's slow permission prompt used to leave the button
+  saying "muted" while the mic was live).
 - **UI.** Voice mode replaces the chat column: Villa's orb (lime ring when she speaks, ink when you
   do, a sweep while she thinks), live caption, mute / end call, a "type instead" box, the voice
   model picker and prompt templates; the transcript reads as Q → A blocks with tool steps, photo
@@ -136,5 +140,5 @@ uv run pytest -q && uv run ruff check .
 
 Environment (`.env` at the repo root): `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`,
 `VOICE_AGENT_SECRET` (backend ↔ agent), `ELEVEN_API_KEY`, optional `ELEVEN_VOICE_ID`,
-`ELEVEN_MODEL`, `VOICE_MODELS`, `VOICE_NOISE_CANCELLATION`, `VOICE_THINKING_SOUND`; it reuses
+`ELEVEN_MODEL`, `VOICE_MODELS`, `VOICE_NOISE_CANCELLATION`; it reuses
 `OPENROUTER_API_KEY`, `EXA_API_KEY` and the MCP URLs.

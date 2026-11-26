@@ -68,7 +68,6 @@ class Settings:
     tts_timeout_s: float = field(default_factory=lambda: float(os.getenv("VOICE_TTS_TIMEOUT_S", "5")))
 
     noise_cancellation: bool = field(default_factory=lambda: _flag("VOICE_NOISE_CANCELLATION", True))
-    thinking_sound: bool = field(default_factory=lambda: _flag("VOICE_THINKING_SOUND", True))
     tool_timeout_s: float = field(default_factory=lambda: float(os.getenv("VOICE_TOOL_TIMEOUT_S", "20")))
     max_web_searches: int = field(default_factory=lambda: int(os.getenv("VOICE_MAX_WEB_SEARCHES", "6")))
 
