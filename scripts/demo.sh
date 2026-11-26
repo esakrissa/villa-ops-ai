@@ -52,7 +52,16 @@ eip_alloc() { aws ec2 describe-addresses --filters "Name=tag:Name,Values=$NAME" 
 eip_ip() { aws ec2 describe-addresses --filters "Name=tag:Name,Values=$NAME" --query 'Addresses[0].PublicIp' 2>/dev/null | grep -v None || true; }
 sg_id() { aws ec2 describe-security-groups --filters "Name=group-name,Values=$NAME" --query 'SecurityGroups[0].GroupId' 2>/dev/null | grep -v None || true; }
 
+# Lookups swallow errors (an empty answer means "not found"), so check the login first:
+# an expired `aws login` session used to show up as "No demo instance".
+require_login() {
+  local out
+  out="$(aws sts get-caller-identity --query Account 2>&1)" ||
+    die "AWS login expired or missing ($(printf '%s' "$out" | tail -1 | cut -c1-120)). Run: aws login --profile $PROFILE --region $REGION"
+}
+
 require_instance() {
+  require_login
   IID="$(instance_id)"
   [[ -n "$IID" ]] || die "No demo instance. Run: ./scripts/demo.sh create"
   IP="$(eip_ip)"
